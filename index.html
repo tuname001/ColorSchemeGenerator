@@ -1022,7 +1022,10 @@
                 this.dom.colorCountSlider.addEventListener('input', (e) => {
                     this.dom.colorCountValue.textContent = this.getColorCountText(e.target.value);
                     this.updateSubModes();
-                    this.generateNewPalette(true);
+                    this.generateNewPalette(true, false);
+                });
+                this.dom.colorCountSlider.addEventListener('change', (e) => {
+                    this.pushHistory();
                 });
 
                 this.dom.mainMode.addEventListener('change', () => {
@@ -1036,7 +1039,10 @@
                 const setupSync = (slider, input, min, max, isFloat) => {
                     slider.addEventListener('input', (e) => {
                         input.value = isFloat ? parseFloat(e.target.value).toFixed(2) : e.target.value;
-                        this.generateNewPalette(true);
+                        this.generateNewPalette(true, false);
+                    });
+                    slider.addEventListener('change', (e) => {
+                        this.pushHistory();
                     });
                     input.addEventListener('input', (e) => {
                         let converted = this.toHalfWidth(e.target.value);
@@ -1045,12 +1051,13 @@
                         if (isNaN(val)) val = 0;
                         val = Math.max(min, Math.min(max, val));
                         slider.value = val;
-                        this.generateNewPalette(true);
+                        this.generateNewPalette(true, false);
                     });
                     input.addEventListener('change', (e) => {
                         let val = isFloat ? parseFloat(e.target.value) : parseInt(e.target.value);
                         if (isNaN(val)) val = 0;
                         e.target.value = isFloat ? Math.max(min, Math.min(max, val)).toFixed(2) : Math.max(min, Math.min(max, val));
+                        this.pushHistory();
                     });
                 };
 
@@ -1063,7 +1070,10 @@
                 const bindGlobalSync = (slider, input, min, max) => {
                     slider.addEventListener('input', (e) => {
                         input.value = e.target.value;
-                        this.applyGlobalAdjustmentsAndRender(true);
+                        this.applyGlobalAdjustmentsAndRender(false);
+                    });
+                    slider.addEventListener('change', (e) => {
+                        this.pushHistory();
                     });
                     input.addEventListener('input', (e) => {
                         let converted = this.toHalfWidth(e.target.value);
@@ -1072,12 +1082,13 @@
                         if (isNaN(val)) val = 0;
                         val = Math.max(min, Math.min(max, val));
                         slider.value = val;
-                        this.applyGlobalAdjustmentsAndRender(true);
+                        this.applyGlobalAdjustmentsAndRender(false);
                     });
                     input.addEventListener('change', (e) => {
                         let val = parseInt(e.target.value);
                         if (isNaN(val)) val = 0;
                         e.target.value = Math.max(min, Math.min(max, val));
+                        this.pushHistory();
                     });
                 };
                 bindGlobalSync(this.dom.globalHueSlider, this.dom.globalHueInput, -180, 180);
