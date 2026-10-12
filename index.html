@@ -11,6 +11,9 @@
             font-family: 'Poppins', sans-serif;
             margin: 0;
             overflow: hidden;
+            display: flex;
+            width: 100vw;
+            height: 100vh;
         }
         
         #main-container {
@@ -27,14 +30,16 @@
             -webkit-backdrop-filter: blur(16px);
             border-right: 1px solid rgba(255, 255, 255, 0.1);
             overflow: visible !important;
-            margin-left: 0; /* PC全画面時はマージンなし */
+            margin-left: 0 !important;
+            flex-shrink: 0;
+            position: relative;
         }
-        /* 縦長グラデーションプレビュー用スタイル（編集画面の左端に隙間なくぴったり沿わせて配置・角丸なし） */
+        /* 縦長グラデーションプレビュー用スタイル（編集画面の左端の外側に隙間なくぴったり沿わせて配置・角丸なし） */
         #sidebar-gradient-preview {
             display: block;
             transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             position: absolute;
-            left: 0;
+            left: -28px;
             top: 0;
             width: 28px;
             height: 100%;
@@ -47,14 +52,29 @@
             pointer-events: none;
         }
         @media (min-width: 1201px) {
-            #sidebar-gradient-preview {
+            #settings-panel {
+                position: relative !important;
+                transform: none !important;
+                margin-left: 28px !important;
+                display: flex !important;
+            }
+            #main-container {
+                margin-left: 0 !important;
+                width: auto !important;
+                flex: 1 1 0% !important;
+                min-width: 0 !important;
+            }
+            #open-drawer-btn {
                 display: none !important;
             }
-            #settings-panel {
-                margin-left: 0 !important;
+            #drawer-overlay {
+                display: none !important;
             }
         }
-        /* サイドバーが閉じられている（画面外にある）ときはプレビューも非表示にする */
+        /* サイドバーが閉じられている（画面外にある）ときはプレビューも非表示にし、マージンも消す */
+        #settings-panel.-translate-x-full {
+            margin-left: 0 !important;
+        }
         #settings-panel.-translate-x-full #sidebar-gradient-preview {
             display: none !important;
         }
@@ -65,12 +85,12 @@
                 top: 0;
                 height: 100%;
                 z-index: 50;
-                margin-left: 0 !important;
-                padding-left: calc(1.5rem + 28px); /* 開いたときにプレビュー分の幅を内部の左側に確保 */
+                margin-left: 28px !important; /* スマホ等の狭い画面で開いているときはプレビュー分右にシフト */
+                box-sizing: border-box;
             }
-            /* 閉じているときはパディングを通常に戻す */
+            /* 閉じているときはマージンを0にする */
             #settings-panel.-translate-x-full {
-                padding-left: 1.5rem !important;
+                margin-left: 0 !important;
             }
             /* 画面が狭いときはハンバーガーボタンを表示する */
             #open-drawer-btn {
@@ -79,6 +99,10 @@
             /* ハンバーガーボタンが表示されているときは「幅をリセット」ボタンを右にずらす */
             #reset-widths-container {
                 left: 5rem !important; /* ハンバーガーボタンと重ならないように位置を調整 */
+            }
+            /* パネルが開いている（-translate-x-fullがない）とき、メイン画面側にもたせる左マージン（色がパネルの裏に隠れるのを防止） */
+            #main-container {
+                margin-left: 0 !important;
             }
         }
 
@@ -116,9 +140,24 @@
             position: relative;
             user-select: none;
         }
-        @media (max-width: 768px) {
+        /* 1行を維持したまま画面幅に応じて限界まで縮小するアクションボタン群のスタイル */
+        div.responsive-action-buttons {
+            font-size: clamp(0.7rem, 1.5vw + 0.2rem, 1.125rem) !important;
+            flex-wrap: nowrap !important;
+            max-width: 98% !important;
+            width: max-content !important;
+            bottom: 3.5rem !important; /* デフォルト（PC等）の位置 */
+        }
+        /* スマホ縦画面（幅が狭く、かつ縦長のデバイス）の場合のみ「生成・ランダム・更新」ボタンをさらに上にしっかり移動 */
+        @media (max-width: 768px) and (orientation: portrait) and (hover: none) and (pointer: coarse) {
+            div.responsive-action-buttons {
+                bottom: 8.5rem !important; /* ボタン位置をさらに上に引き上げ */
+            }
+        }
+        /* スマホ縦画面（幅が狭く、かつ縦長）のときのみ、カラーペイン内の要素（ロックボタン・コード・Copy）の位置を下部余白で適度に引き下げ（高くなりすぎを防止） */
+        @media (max-width: 768px) and (orientation: portrait) and (hover: none) and (pointer: coarse) {
             .color-pane {
-                padding-bottom: 13rem;
+                padding-bottom: 10.5rem !important; /* パディングを縮めて要素を適度に下へ下げる */
             }
         }
         /* 境界線のリサイズハンドル */
@@ -152,14 +191,6 @@
             transition: all 0.2s;
             z-index: 20;
         }
-
-        /* 1行を維持したまま画面幅に応じて限界まで縮小するアクションボタン群のスタイル */
-        .responsive-action-buttons {
-            font-size: clamp(0.7rem, 1.5vw + 0.2rem, 1.125rem); /* 最大値 1.125rem (text-lg相当) をキープ */
-            flex-wrap: nowrap;
-            max-width: 98%;
-            width: max-content;
-        }
         .responsive-action-buttons button {
             padding-top: clamp(0.5rem, 1vw + 0.2rem, 1rem);       /* 最大値 py-4 相当 */
             padding-bottom: clamp(0.5rem, 1vw + 0.2rem, 1rem);
@@ -172,13 +203,13 @@
         }
     </style>
 </head>
-<body class="w-full h-screen relative bg-gray-900 flex overflow-hidden">
+<body class="bg-gray-900">
 
     <!-- モバイル用 オーバーレイ背景 -->
     <div id="drawer-overlay" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm transition-opacity"></div>
 
     <!-- 編集画面 (サイドバー / モバイルドロワー) -->
-    <aside id="settings-panel" class="fixed md:relative inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col p-6 text-white shadow-2xl z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out overflow-hidden relative">
+    <aside id="settings-panel" class="absolute inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col p-6 text-white shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 ease-in-out overflow-hidden">
         <!-- リアルタイム縦長グラデーションプレビュー（狭い画面時にサイドバー右縁に追従） -->
         <div id="sidebar-gradient-preview"></div>
 
@@ -1800,7 +1831,7 @@
                     this.dom.mainContainer.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
                 }
 
-                // サイドバー内の縦長プレビュー（上から下へ、各色領域のサイズ変化・比率および分割モードを完全に反映）
+                // サイドバー内の縦長プレビュー（上から下へ、各色領域のサイズ変化・比率および分割モードを完全に反映・下部のはみ出しを完全排除）
                 const sidebarPreview = document.getElementById('sidebar-gradient-preview');
                 if (sidebarPreview && hexes.length > 0) {
                     const ratios = this.currentColors.map(c => c.widthRatio !== undefined ? c.widthRatio : 1);
@@ -1810,8 +1841,9 @@
 
                     ratios.forEach((ratio, i) => {
                         const percent = (ratio / totalRatio) * 100;
-                        const startPct = currentPercent;
-                        const endPct = currentPercent + percent;
+                        let startPct = currentPercent;
+                        let endPct = currentPercent + percent;
+                        if (i === ratios.length - 1) endPct = 100; // 最後の要素は確実に100%で止め、下部のはみ出しを防ぐ
 
                         if (this.isSplitMode) {
                             stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
