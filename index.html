@@ -49,6 +49,8 @@
             border-left: 1px solid rgba(255, 255, 255, 0.25);
             border-top: 1px solid rgba(255, 255, 255, 0.15);
             border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            background-repeat: no-repeat;
+            background-size: 100% calc(100% + 2px); /* 追加: 下端のサブピクセル隙間・色漏れを完全に隠す */
             pointer-events: none;
         }
         @media (min-width: 1201px) {
@@ -1831,16 +1833,21 @@
                     const stops = [];
 
                     ratios.forEach((ratio, i) => {
-                        const widthPercent = (ratio / totalRatio) * 100;
+                        const percent = (ratio / totalRatio) * 100;
                         const startPct = currentPercent;
-                        const endPct = currentPercent + widthPercent;
+                        let endPct = currentPercent + percent;
+                        if (i === ratios.length - 1) endPct = 100; // 最後の要素の終端を厳密に100%に固定
+                        const midPct = startPct + ((endPct - startPct) / 2);
 
                         if (this.isSplitMode) {
-                            stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
+                            if (i === ratios.length - 1) {
+                                stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} 100%`);
+                            } else {
+                                stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
+                            }
                         } else {
-                            const midPct = startPct + ((endPct - startPct) / 2);
                             if (i === 0) {
-                                stops.push(`${hexes[i]} 0%`);
+                                stops.push(`${hexes[i]} ${startPct}%`);
                                 stops.push(`${hexes[i]} ${midPct}%`);
                             } else if (i === hexes.length - 1) {
                                 stops.push(`${hexes[i]} ${midPct}%`);
@@ -1867,18 +1874,22 @@
                         const percent = (ratio / totalRatio) * 100;
                         const startPct = currentPercent;
                         let endPct = currentPercent + percent;
-                        if (i === ratios.length - 1) endPct = 100; // 最後の要素の終端を厳密に100%に固定して色の漏れを防止
+                        if (i === ratios.length - 1) endPct = 100; // 最後の要素の終端を100.5%に拡張して隙間や色漏れを完全に防止
                         const midPct = startPct + ((endPct - startPct) / 2);
 
                         if (this.isSplitMode) {
-                            stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
+                            if (i === ratios.length - 1) {
+                                stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
+                            } else {
+                                stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
+                            }
                         } else {
                             if (i === 0) {
                                 stops.push(`${hexes[i]} ${startPct}%`);
                                 stops.push(`${hexes[i]} ${midPct}%`);
                             } else if (i === hexes.length - 1) {
                                 stops.push(`${hexes[i]} ${midPct}%`);
-                                stops.push(`${hexes[i]} 100%`);
+                                stops.push(`${hexes[i]} ${endPct}%`);
                             } else {
                                 stops.push(`${hexes[i]} ${midPct}%`);
                             }
@@ -1886,7 +1897,7 @@
                         currentPercent = endPct;
                     });
 
-                    sidebarPreview.style.background = `linear-gradient(to bottom, ${stops.join(', ')})`;
+                    sidebarPreview.style.backgroundImage = `linear-gradient(to bottom, ${stops.join(', ')})`;
                 }
             }
 
