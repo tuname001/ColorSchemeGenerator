@@ -854,6 +854,9 @@
                 this.translations = {
                     ja: {
                         editScreen: '編集画面',
+                        copiedHex: 'カラーコードをコピーしました！',
+                        copiedCss: 'CSS変数をコピーしました！',
+                        copiedTailwind: 'Tailwind設定をコピーしました！',
                         colorCount: '色数',
                         globalAdjustment: '調整',
                         globalHueLabel: '色相調整',
@@ -922,6 +925,9 @@
                     },
                     en: {
                         editScreen: 'Edit Panel',
+                        copiedHex: 'Copied to clipboard!',
+                        copiedCss: 'CSS variables copied!',
+                        copiedTailwind: 'Tailwind config copied!',
                         colorCount: 'Colors',
                         globalAdjustment: 'Adjustment',
                         globalHueLabel: 'Hue Adjustment',
@@ -1831,7 +1837,7 @@
                     this.dom.mainContainer.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
                 }
 
-                // サイドバー内の縦長プレビュー（上から下へ、各色領域のサイズ変化・比率および分割モードを完全に反映・下部のはみ出しを完全排除）
+                // サイドバー内の縦長プレビュー（上から下へ、各色領域のサイズ変化・比率および分割モードを完全に反映）
                 const sidebarPreview = document.getElementById('sidebar-gradient-preview');
                 if (sidebarPreview && hexes.length > 0) {
                     const ratios = this.currentColors.map(c => c.widthRatio !== undefined ? c.widthRatio : 1);
@@ -1841,16 +1847,15 @@
 
                     ratios.forEach((ratio, i) => {
                         const percent = (ratio / totalRatio) * 100;
-                        let startPct = currentPercent;
-                        let endPct = currentPercent + percent;
-                        if (i === ratios.length - 1) endPct = 100; // 最後の要素は確実に100%で止め、下部のはみ出しを防ぐ
+                        const startPct = currentPercent;
+                        const endPct = currentPercent + percent;
+                        const midPct = startPct + ((endPct - startPct) / 2);
 
                         if (this.isSplitMode) {
                             stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
                         } else {
-                            const midPct = startPct + ((endPct - startPct) / 2);
                             if (i === 0) {
-                                stops.push(`${hexes[i]} 0%`);
+                                stops.push(`${hexes[i]} ${startPct}%`);
                                 stops.push(`${hexes[i]} ${midPct}%`);
                             } else if (i === hexes.length - 1) {
                                 stops.push(`${hexes[i]} ${midPct}%`);
@@ -2234,7 +2239,7 @@
             copyCss() {
                 const vars = this.currentColors.map((c, i) => `  --color-${i + 1}: ${c.hex};`).join('\n');
                 const cssText = `:root {\n${vars}\n}`;
-                this.copyToClipboard(cssText, 'CSS Variables copied!');
+                this.copyToClipboard(cssText, 'css');
             }
 
             // Tailwind Config コピー
@@ -2244,7 +2249,7 @@
                     colorObj[`color-${i + 1}`] = c.hex;
                 });
                 const tailwindText = `// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: {\n        palette: ${JSON.stringify(colorObj, null, 10).replace(/\n\s*/g, ' ')}\n      }\n    }\n  }\n};`;
-                this.copyToClipboard(tailwindText, 'Tailwind config copied!');
+                this.copyToClipboard(tailwindText, 'tailwind');
             }
 
             // JSON エクスポート
@@ -2278,9 +2283,14 @@
                 URL.revokeObjectURL(url);
             }
 
-            async copyToClipboard(text, message = 'Copied to clipboard!') {
+            async copyToClipboard(text, messageType = 'hex') {
                 try {
                     await navigator.clipboard.writeText(text);
+                    const t = this.translations[this.currentLang];
+                    let message = t.copiedHex;
+                    if (messageType === 'css') message = t.copiedCss;
+                    if (messageType === 'tailwind') message = t.copiedTailwind;
+
                     this.dom.toastMsg.textContent = message;
                     this.dom.toast.classList.remove('toast-animate');
                     void this.dom.toast.offsetWidth;
