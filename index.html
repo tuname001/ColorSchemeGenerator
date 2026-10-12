@@ -1012,8 +1012,12 @@
                     });
                 }
 
+                let lastWidth = window.innerWidth;
                 window.addEventListener('resize', () => {
-                    this.renderPanes();
+                    if (window.innerWidth !== lastWidth) {
+                        lastWidth = window.innerWidth;
+                        this.renderPanes();
+                    }
                 });
                 this.dom.colorCountSlider.addEventListener('input', (e) => {
                     this.dom.colorCountValue.textContent = this.getColorCountText(e.target.value);
