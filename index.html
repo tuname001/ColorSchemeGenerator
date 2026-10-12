@@ -1848,7 +1848,8 @@
                     ratios.forEach((ratio, i) => {
                         const percent = (ratio / totalRatio) * 100;
                         const startPct = currentPercent;
-                        const endPct = currentPercent + percent;
+                        let endPct = currentPercent + percent;
+                        if (i === ratios.length - 1) endPct = 100; // 最後の要素の終端を厳密に100%に固定して色の漏れを防止
                         const midPct = startPct + ((endPct - startPct) / 2);
 
                         if (this.isSplitMode) {
