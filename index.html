@@ -1,0 +1,2152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Palette Generator - Pro Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        #main-container {
+            transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .color-text {
+            transition: color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        #settings-panel {
+            background: rgba(24, 24, 27, 0.96);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes slideUpFade {
+            0% { opacity: 0; transform: translate(-50%, -20px); }
+            10% { opacity: 1; transform: translate(-50%, 0); }
+            90% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
+        .toast-animate {
+            animation: slideUpFade 2.5s forwards;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        input[type=range] {
+            accent-color: #E5F6FF;
+        }
+
+        /* ペイン操作用スタイル */
+        .color-pane {
+            transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            user-select: none;
+        }
+        @media (max-width: 768px) and (orientation: portrait) {
+            .color-pane {
+                padding-bottom: 13rem;
+            }
+        }
+        /* 境界線のリサイズハンドル */
+        .resize-handle {
+            position: absolute;
+            right: -11px; /* 中心を境界線に合わせる */
+            top: 0;
+            width: 24px; /* タッチしやすいように幅を3倍に拡大 */
+            height: 100%;
+            cursor: col-resize;
+            z-index: 10;
+            touch-action: none; /* スクロール干渉を防ぐ */
+        }
+        @media (hover: hover) {
+            .resize-handle:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+        }
+        /* ロックボタン（文字の少し上） */
+        .lock-btn {
+            position: absolute;
+            bottom: 48%; /* カラーコード等の少し上 */
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            transition: all 0.2s;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body class="w-full h-screen relative bg-gray-900 flex overflow-hidden">
+
+    <!-- モバイル用 オーバーレイ背景 -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-black/60 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+
+    <!-- 編集画面 (サイドバー / モバイルドロワー) -->
+    <aside id="settings-panel" class="fixed md:relative inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col p-6 text-white shadow-2xl z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out overflow-hidden">
+        <div class="flex justify-between items-center mb-4 flex-shrink-0">
+            <h2 class="text-xl font-bold tracking-wider drop-shadow flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full inline-block" style="background-color: #3B82F6;"></span>
+                <span id="txt-edit-screen">編集画面</span>
+            </h2>
+            <div class="flex items-center gap-2">
+                <button id="lang-toggle-btn" class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-sm transition-colors cursor-pointer" title="言語切替 / Language">🇯🇵</button>
+                <button id="help-btn" class="hidden md:flex w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 items-center justify-center text-xs font-bold transition-colors cursor-pointer" title="ショートカット一覧">?</button>
+                <button id="close-drawer-btn" class="md:hidden w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer">✕</button>
+            </div>
+        </div>
+        
+        <div class="flex-1 space-y-6 overflow-y-auto pr-1">
+            <!-- 色数設定 -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <label id="txt-color-count-label" class="text-xs font-semibold uppercase tracking-wider opacity-70">色数</label>
+                    <span id="color-count-value" class="text-xs font-bold" style="color: #7AC3FF;">2色</span>
+                </div>
+                <input type="range" id="color-count-slider" min="2" max="6" value="2" step="1" class="w-full cursor-pointer">
+            </div>
+
+            <!-- ジェネレートモード -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <label id="txt-palette-category" class="text-xs font-semibold uppercase tracking-wider opacity-70">配色カテゴリ</label>
+                    <button id="reset-category-btn" class="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer" title="OKLCHトーン設定をリセット">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 3v5h-5" />
+                        </svg>
+                    </button>
+                </div>
+                <select id="main-mode" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 transition-colors mb-2 cursor-pointer">
+                    <option value="hue_tone">① OKLCH色相トーン配色</option>
+                    <option value="theory">② 色彩理論・体系配色</option>
+                    <option value="image">③ イメージワード配色</option>
+                </select>
+                
+                <select id="sub-mode" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 transition-colors cursor-pointer mb-2">
+                    <!-- 動的生成 -->
+                </select>
+
+                <!-- OKLCHトーン配色用スライダー -->
+                <div id="hue-tone-settings" class="hidden w-full bg-black/40 border border-white/20 rounded-lg p-3 mb-2 space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label id="txt-hue-step-label" class="text-xs text-white/80">色相ステップ</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="hue-step-input" min="-180" max="180" value="60" step="1" class="w-16 bg-black/50 border border-white/20 rounded text-xs font-bold text-right outline-none focus:border-indigo-500 px-1 py-0.5" style="color: #7AC3FF;">
+                                <span class="text-xs" style="color: #7AC3FF;">°</span>
+                            </div>
+                        </div>
+                        <input type="range" id="hue-step-slider" min="-180" max="180" value="60" step="15" class="w-full cursor-pointer">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label id="txt-sat-step-label" class="text-xs text-white/80">彩度ステップ</label>
+                            <input type="number" id="sat-step-input" min="-1.00" max="1.00" value="0.00" step="0.01" class="w-16 bg-black/50 border border-white/20 rounded text-xs font-bold text-right outline-none focus:border-indigo-500 px-1 py-0.5" style="color: #7AC3FF;">
+                        </div>
+                        <input type="range" id="sat-step-slider" min="-1.0" max="1.0" value="0" step="0.05" class="w-full cursor-pointer">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label id="txt-lit-step-label" class="text-xs text-white/80">明度ステップ</label>
+                            <input type="number" id="lit-step-input" min="-1.00" max="1.00" value="0.00" step="0.01" class="w-16 bg-black/50 border border-white/20 rounded text-xs font-bold text-right outline-none focus:border-indigo-500 px-1 py-0.5" style="color: #7AC3FF;">
+                        </div>
+                        <input type="range" id="lit-step-slider" min="-1.0" max="1.0" value="0" step="0.05" class="w-full cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 全体調整 -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <label id="txt-global-adjustment" class="text-xs font-semibold uppercase tracking-wider opacity-70">調整</label>
+                    <button id="reset-global-btn" class="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer" title="調整をリセット">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 3v5h-5" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="w-full bg-black/40 border border-white/20 rounded-lg p-3 mb-2 space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label id="txt-global-hue-label" class="text-xs text-white/80">色相調整</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="global-hue-input" min="-180" max="180" value="0" step="1" class="w-16 bg-black/50 border border-white/20 rounded text-xs font-bold text-right outline-none focus:border-indigo-500 px-1 py-0.5" style="color: #7AC3FF;">
+                                <span class="text-xs" style="color: #7AC3FF;">°</span>
+                            </div>
+                        </div>
+                        <input type="range" id="global-hue-slider" min="-180" max="180" value="0" step="1" class="w-full cursor-pointer">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label id="txt-global-sat-label" class="text-xs text-white/80">彩度調整</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="global-sat-input" min="-100" max="100" value="0" step="1" class="w-16 bg-black/50 border border-white/20 rounded text-xs font-bold text-right outline-none focus:border-indigo-500 px-1 py-0.5" style="color: #7AC3FF;">
+                                <span class="text-xs" style="color: #7AC3FF;">%</span>
+                            </div>
+                        </div>
+                        <input type="range" id="global-sat-slider" min="-100" max="100" value="0" step="1" class="w-full cursor-pointer">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label id="txt-global-lit-label" class="text-xs text-white/80">明度調整</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="global-lit-input" min="-100" max="100" value="0" step="1" class="w-16 bg-black/50 border border-white/20 rounded text-xs font-bold text-right outline-none focus:border-indigo-500 px-1 py-0.5" style="color: #7AC3FF;">
+                                <span class="text-xs" style="color: #7AC3FF;">%</span>
+                            </div>
+                        </div>
+                        <input type="range" id="global-lit-slider" min="-100" max="100" value="0" step="1" class="w-full cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 表示モード -->
+            <div>
+                <label id="txt-display-mode" class="block text-xs font-semibold uppercase tracking-wider opacity-70 mb-2">表示モード</label>
+                <div class="flex bg-black/30 p-1 rounded-xl border border-white/10">
+                    <button id="mode-gradient" class="flex-1 py-2 text-xs font-semibold rounded-lg text-white shadow transition-all cursor-pointer" style="background-color: #3B82F6;">グラデーション</button>
+                    <button id="mode-split" class="flex-1 py-2 text-xs font-semibold rounded-lg text-white/70 hover:text-white transition-all cursor-pointer">きっぱり分ける</button>
+                </div>
+            </div>
+
+            <!-- ストック機能 -->
+            <div>
+                <label id="txt-stock-list" class="block text-xs font-semibold uppercase tracking-wider opacity-70 mb-2">ストック一覧 (最大20個)</label>
+                <div id="stock-list" class="space-y-2">
+                    <!-- JSで動的生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- アクションボタン群 (機能拡張) -->
+        <div class="mt-4 space-y-2 pt-4 border-t border-white/10 flex-shrink-0">
+            <div class="grid grid-cols-2 gap-2">
+                <button id="copy-current-css-btn" style="background-color: rgba(59, 130, 246, 0.8); border-color: rgba(59, 130, 246, 0.3);" class="py-2.5 hover:opacity-95 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
+                    CSSコピー
+                </button>
+                <button id="copy-tailwind-btn" style="background-color: rgba(59, 130, 246, 0.8); border-color: rgba(59, 130, 246, 0.3);" class="py-2.5 hover:opacity-95 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
+                    Tailwindコピー
+                </button>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <button id="export-current-json-btn" class="py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
+                    JSON出力
+                </button>
+                <button id="export-csv-btn" class="py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
+                    CSV出力
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- メイン表示エリア -->
+    <main id="main-container" class="flex-1 h-full relative flex flex-col min-w-0">
+        <!-- モバイル用 メニュー開くボタン (デスクトップでは非表示) -->
+        <button id="open-drawer-btn" class="md:hidden absolute top-6 left-6 z-30 p-3 bg-black/40 backdrop-blur-md text-white rounded-full border border-white/20 shadow-lg hover:bg-white/20 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
+
+        <!-- 左上：境界線リセットボタン (モバイル時はハンバーガーボタンと重ならないように左位置を調整) -->
+        <div class="absolute top-6 left-20 md:left-8 flex items-center z-30">
+            <button id="reset-widths-btn" class="px-3 md:px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white font-bold text-[11px] md:text-xs tracking-wider rounded-full shadow-lg border border-white/20 transition-all hover:scale-105 cursor-pointer flex items-center gap-1.5 uppercase" title="色領域の比率を均等にリセット">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 3v5h-5" />
+                </svg>
+                <span id="txt-reset-widths">幅をリセット</span>
+            </button>
+        </div>
+
+        <!-- 右上：履歴＆SAVEボタン -->
+        <div class="absolute top-6 right-6 flex flex-col items-end gap-3 z-30">
+            <div class="flex items-center gap-1 bg-black/40 backdrop-blur-md p-1 rounded-full border border-white/20 shadow-lg">
+                <button id="undo-btn" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 text-white transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" title="一つ前に戻る (Ctrl+Z)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+                <button id="redo-btn" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 text-white transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" title="一つ後に進む (Ctrl+Y)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+            <button id="save-stock-btn" style="background-color: #3B82F6; border-color: rgba(59, 130, 246, 0.3);" class="px-5 py-2.5 backdrop-blur-md text-white font-bold text-xs tracking-widest rounded-full shadow-lg transition-all hover:scale-105 cursor-pointer flex items-center gap-2 uppercase">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                <span id="txt-save">保存</span>
+            </button>
+        </div>
+
+        <!-- 色領域(ペイン)コンテナ -->
+        <div id="color-panes" class="flex w-full h-full z-0"></div>
+
+        <!-- アクションボタン群 -->
+        <div class="absolute bottom-[7.5rem] md:bottom-14 left-1/2 transform -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 md:gap-4 z-25 whitespace-nowrap">
+            <button id="random-btn" style="background-color: #FFFFFF;" class="px-3 sm:px-5 md:px-8 py-3 md:py-4 backdrop-blur-md rounded-full shadow-2xl text-gray-900 font-bold text-xs sm:text-sm md:text-lg tracking-widest uppercase hover:opacity-90 hover:scale-105 transition-all duration-200 flex items-center gap-1 sm:gap-2 md:gap-3 cursor-pointer whitespace-nowrap">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span id="txt-generate">生成</span>
+            </button>
+            
+            <button id="update-btn" class="px-3 sm:px-4 md:px-6 py-3 md:py-4 bg-gray-800/90 backdrop-blur-md rounded-full shadow-2xl text-white font-bold text-xs sm:text-sm md:text-lg tracking-widest uppercase hover:bg-gray-700 hover:scale-105 transition-all duration-200 flex items-center gap-1 sm:gap-2 cursor-pointer whitespace-nowrap">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span id="txt-random">ランダム</span>
+            </button>
+            
+            <!-- 新規追加: 左端の色を維持したまま現在のモードで配色を再生成・適用 -->
+            <button id="keep-base-update-btn" style="background-color: #3B82F6;" class="px-3 sm:px-4 md:px-6 py-3 md:py-4 backdrop-blur-md rounded-full shadow-2xl text-white font-bold text-xs sm:text-sm md:text-lg tracking-widest uppercase hover:opacity-90 hover:scale-105 transition-all duration-200 flex items-center gap-1 sm:gap-2 cursor-pointer whitespace-nowrap" title="左端の色を基準に現在の設定で配色を更新">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span id="txt-update">更新</span>
+            </button>
+        </div>
+    </main>
+
+    <!-- トースト通知 -->
+    <div id="toast" class="fixed top-16 left-1/2 transform -translate-x-1/2 px-6 py-3 bg-gray-900 text-white font-semibold rounded-full shadow-2xl z-50 opacity-0 pointer-events-none flex items-center gap-2 border border-white/10">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+        <span id="toast-msg">Copied to clipboard!</span>
+    </div>
+
+    <!-- ショートカット確認用モーダル -->
+    <div id="help-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-800 text-white p-6 rounded-2xl max-w-xs w-full border border-white/20 shadow-2xl text-center space-y-4">
+            <h3 id="txt-sc-title" class="text-base font-bold border-b border-white/10 pb-2">ショートカットキー</h3>
+            <ul class="text-xs space-y-2 text-left bg-black/40 p-4 rounded-xl font-mono">
+                <li class="flex justify-between"><span id="txt-sc-key-space" class="text-gray-400">Space</span> <span id="txt-sc-val-space">生成</span></li>
+                <li class="flex justify-between"><span id="txt-sc-key-r" class="text-gray-400">R</span> <span id="txt-sc-val-r">ランダム</span></li>
+                <li class="flex justify-between"><span id="txt-sc-key-z" class="text-gray-400">Ctrl + Z</span> <span id="txt-sc-val-z">一つ前に戻る</span></li>
+                <li class="flex justify-between"><span id="txt-sc-key-y" class="text-gray-400">Ctrl + Y</span> <span id="txt-sc-val-y">一つ後に進む</span></li>
+                <li class="flex justify-between"><span id="txt-sc-key-s" class="text-gray-400">Ctrl + S</span> <span id="txt-sc-val-s">保存</span></li>
+                <li class="flex justify-between"><span id="txt-sc-key-swipe" class="text-gray-400">スワイプ (左右)</span> <span id="txt-sc-val-swipe">配色切り替え</span></li>
+            </ul>
+            <p id="txt-sc-close" class="text-[10px] text-gray-400">（画面クリックで閉じます）</p>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            STORAGE_KEY: 'color_palette_stocks_v2',
+            STATE_STORAGE_KEY: 'color_palette_current_state_v3',
+            MAX_STOCKS: 20,
+            WCAG_CONTRAST_THRESHOLD: 4.5,
+            
+            PCCS_TONES: {
+                v:  { name: 'vivid',   L: [0.55, 0.65], C: [0.20, 0.26] },
+                b:  { name: 'bright',  L: [0.70, 0.80], C: [0.15, 0.22] },
+                s:  { name: 'strong',  L: [0.50, 0.60], C: [0.16, 0.22] },
+                dp: { name: 'deep',    L: [0.35, 0.45], C: [0.15, 0.22] },
+                p:  { name: 'pale',    L: [0.85, 0.94], C: [0.03, 0.08] },
+                lt: { name: 'light',   L: [0.75, 0.85], C: [0.08, 0.14] },
+                sf: { name: 'soft',    L: [0.60, 0.70], C: [0.07, 0.12] },
+                d:  { name: 'dull',    L: [0.45, 0.55], C: [0.07, 0.12] },
+                dk: { name: 'dark',    L: [0.25, 0.35], C: [0.10, 0.16] },
+                g:  { name: 'grayish', L: [0.45, 0.55], C: [0.02, 0.06] }
+            },
+
+            IMAGE_WORDS: {
+                casual:        { toneKeys: ['b', 'lt'],      hueRange: [20, 80] },
+                classic:       { toneKeys: ['dp', 'dk'],     hueRange: [20, 60] },
+                clear:         { toneKeys: ['p', 'lt'],      hueRange: [180, 250] },
+                chic:          { toneKeys: ['d', 'g'],       hueRange: [0, 360] },
+                dynamic:       { toneKeys: ['v', 's'],       hueRange: [0, 360] },
+                modern:        { toneKeys: ['g', 'v'],       hueRange: [200, 260] },
+                warm_natural:  { toneKeys: ['sf', 'lt'],     hueRange: [30, 90] },
+                fresh_natural: { toneKeys: ['lt', 'b'],      hueRange: [90, 160] },
+                elegant:       { toneKeys: ['p', 'sf'],      hueRange: [280, 340] },
+                romantic:      { toneKeys: ['p', 'lt'],      hueRange: [320, 360] }
+            },
+
+            SUB_MODES: {
+                hue_tone: [
+                    { value: 'custom', label: 'カスタムステップ調整' }
+                ],
+                theory: [
+                    { value: 'camaieu', label: 'カマイユ (微小変化)' },
+                    { value: 'faux_camaieu', label: 'フォカマイユ (類似変化)' },
+                    { value: 'dominant_color', label: 'ドミナントカラー (同一色相)' },
+                    { value: 'dominant_tone', label: 'ドミナントトーン (同一トーン)' },
+                    { value: 'tone_on_tone', label: 'トーンオントーン (明度対比)' },
+                    { value: 'tone_in_tone', label: 'トーンイントーン (類似トーン)' },
+                    { value: 'tonal', label: 'トーナル配色 (ダルトーン系)' },
+                    { value: 'accent_color', label: 'アクセントカラー (対照色強調)' },
+                    { value: 'dyad', label: 'ダイアード / 2色補色 (2色)', targetCount: 2 },
+                    { value: 'triad', label: 'トライアド / 3等分 (3色)', targetCount: 3 },
+                    { value: 'split_complementary', label: 'スプリットコンプリメンタリー (3色)', targetCount: 3 },
+                    { value: 'tetrad', label: 'テトラード / 4等分 (4色)', targetCount: 4 },
+                    { value: 'pentad', label: 'ペンタード / 5等分 (5色)', targetCount: 5 },
+                    { value: 'hexad', label: 'ヘクサード / 6等分 (6色)', targetCount: 6 }
+                ],
+                image: [
+                    { value: 'casual', label: 'カジュアル' },
+                    { value: 'classic', label: 'クラシック' },
+                    { value: 'clear', label: 'クリア' },
+                    { value: 'chic', label: 'シック' },
+                    { value: 'dynamic', label: 'ダイナミック' },
+                    { value: 'modern', label: 'モダン' },
+                    { value: 'warm_natural', label: 'ウォームナチュラル' },
+                    { value: 'fresh_natural', label: 'フレッシュナチュラル' },
+                    { value: 'elegant', label: 'エレガント' },
+                    { value: 'romantic', label: 'ロマンチック' }
+                ]
+            }
+        };
+
+        /**
+         * 色変換 & コントラスト計算クラス (ColorMath)
+         * OKLCH ↔ OKLab ↔ Linear RGB ↔ sRGB (D65) 変換 & Gamut Mapping
+         */
+        class ColorMath {
+            static random(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            static srgbToLinear(c) {
+                c /= 255;
+                return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+            }
+
+            static linearToSrgb(c) {
+                const abs = Math.max(0, c);
+                const s = abs <= 0.0031308 ? 12.92 * abs : 1.055 * Math.pow(abs, 1 / 2.4) - 0.055;
+                return Math.min(255, Math.max(0, Math.round(s * 255)));
+            }
+
+            static oklchToOklab(l, c, h) {
+                const hRad = (h * Math.PI) / 180;
+                return {
+                    L: l,
+                    a: c * Math.cos(hRad),
+                    b: c * Math.sin(hRad)
+                };
+            }
+
+            static oklabToLinearRgb(L, a, b) {
+                const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+                const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+                const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+
+                const l = l_ * l_ * l_;
+                const m = m_ * m_ * m_;
+                const s = s_ * s_ * s_;
+
+                return [
+                    +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+                    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+                    -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
+                ];
+            }
+
+            /**
+             * OKLCH -> sRGB [r, g, b] (Gamut Mapping処理付き)
+             * 二分探索(Binary Search)を用いて、正確にsRGB色域内に収まる最大彩度を計算
+             */
+            static oklchToRgb(l, c, h) {
+                // 明度が限界値の場合は計算せずに確実な白・黒を返す
+                if (l <= 0.0) return [0, 0, 0];
+                if (l >= 1.0) return [255, 255, 255];
+
+                let minC = 0;
+                let maxC = Math.max(0, c);
+                let currentC = maxC;
+                let bestLinRgb = null;
+
+                // バイナリサーチで表示可能な最大彩度を探索（20回で十分な精度）
+                for (let i = 0; i < 20; i++) {
+                    const lab = this.oklchToOklab(l, currentC, h);
+                    const linRgb = this.oklabToLinearRgb(lab.L, lab.a, lab.b);
+                    
+                    const inGamut = linRgb[0] >= -0.001 && linRgb[0] <= 1.001 &&
+                                     linRgb[1] >= -0.001 && linRgb[1] <= 1.001 &&
+                                     linRgb[2] >= -0.001 && linRgb[2] <= 1.001;
+                    
+                    if (inGamut) {
+                        bestLinRgb = linRgb;
+                        minC = currentC; // さらに彩度を上げられるか試す
+                    } else {
+                        maxC = currentC; // 色域外なので彩度を下げる
+                    }
+                    currentC = (minC + maxC) / 2;
+                }
+
+                // 色域内に収まる値が一度も見つからなかった場合のフォールバック（無彩色）
+                if (!bestLinRgb) {
+                     const lab = this.oklchToOklab(l, 0, h);
+                     bestLinRgb = this.oklabToLinearRgb(lab.L, lab.a, lab.b);
+                }
+
+                return [
+                    this.linearToSrgb(bestLinRgb[0]),
+                    this.linearToSrgb(bestLinRgb[1]),
+                    this.linearToSrgb(bestLinRgb[2])
+                ];
+            }
+
+            static rgbToHex(r, g, b) {
+                return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1).toUpperCase();
+            }
+
+            static getRelativeLuminance(r, g, b) {
+                const R = this.srgbToLinear(r);
+                const G = this.srgbToLinear(g);
+                const B = this.srgbToLinear(b);
+                return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+            }
+
+            static getAccessibleTextColor(r, g, b) {
+                const bgLuminance = this.getRelativeLuminance(r, g, b);
+                const contrastWithWhite = (0.95 + 0.05) / (bgLuminance + 0.05);
+                const contrastWithBlack = (bgLuminance + 0.05) / (0.01 + 0.05);
+
+                return contrastWithWhite >= contrastWithBlack ? '#F9FAFB' : '#111827';
+            }
+            
+            // RGBから正確なOKLCHを逆算 (再計算による劣化を防ぐ保護処理追加)
+            static rgbToOklch(r, g, b) {
+                const linRgb = [this.srgbToLinear(r), this.srgbToLinear(g), this.srgbToLinear(b)];
+                
+                const l = 0.4122214708 * linRgb[0] + 0.5363325363 * linRgb[1] + 0.0514459929 * linRgb[2];
+                const m = 0.2119034982 * linRgb[0] + 0.6806995451 * linRgb[1] + 0.1073969566 * linRgb[2];
+                const s = 0.0883024619 * linRgb[0] + 0.2817188376 * linRgb[1] + 0.6299787005 * linRgb[2];
+
+                // 微小な負の値による NaN を回避
+                const l_ = Math.cbrt(l > 0 ? l : 0);
+                const m_ = Math.cbrt(m > 0 ? m : 0);
+                const s_ = Math.cbrt(s > 0 ? s : 0);
+
+                const L = 0.2104542553*l_ + 0.7936177850*m_ - 0.0040720468*s_;
+                const a = 1.9779984951*l_ - 2.4285922050*m_ + 0.4505937099*s_;
+                const b_ = 0.0259040371*l_ + 0.7827717662*m_ - 0.8086757660*s_;
+
+                const C = Math.max(0, Math.sqrt(a * a + b_ * b_));
+                let H = Math.atan2(b_, a) * (180 / Math.PI);
+                if (H < 0) H += 360;
+
+                return { l: L, c: C, h: H };
+            }
+        }
+
+        /**
+         * 配色生成ロジッククラス (PaletteGenerator)
+         */
+        class PaletteGenerator {
+            static generate(mainMode, subMode, count, settings, baseState = null) {
+                let okList = [];
+                let baseH = baseState ? baseState.h : ColorMath.random(0, 360);
+                let baseL = baseState ? baseState.l : ColorMath.random(0.4, 0.8);
+                let baseC = baseState ? baseState.c : ColorMath.random(0.08, 0.20);
+
+                if (mainMode === 'hue_tone') {
+                    for (let i = 0; i < count; i++) {
+                        let h = (baseH + settings.hueStep * i) % 360;
+                        // 彩度(c)の上限制限を 0.32 から 1.0 に拡大してスライダーの強さを反映させる
+                        let c = Math.max(0.0, Math.min(1.0, baseC + settings.satStep * i));
+                        // 白（1.0）や黒（0.0）に到達できるように制限を緩める
+                        let l = Math.max(0.0, Math.min(1.0, baseL + settings.litStep * i));
+                        okList.push({ l, c, h });
+                    }
+                }
+                else if (mainMode === 'theory') {
+                    if (subMode === 'camaieu') {
+                        for (let i = 0; i < count; i++) {
+                            okList.push({ l: baseL + ColorMath.random(-0.03, 0.03), c: baseC + ColorMath.random(-0.02, 0.02), h: baseH + ColorMath.random(-5, 5) });
+                        }
+                    } else if (subMode === 'faux_camaieu') {
+                        for (let i = 0; i < count; i++) {
+                            okList.push({ l: baseL + ColorMath.random(-0.08, 0.08), c: baseC + ColorMath.random(-0.04, 0.04), h: baseH + ColorMath.random(-15, 15) });
+                        }
+                    } else if (['dyad', 'triad', 'tetrad', 'pentad', 'hexad', 'split_complementary'].includes(subMode)) {
+                        // ダイアード、トライアド、スプリット等も含め、現在の「色数(count)」に合わせて360度を均等割り（または対応角）にする
+                        const step = 360 / count;
+                        for (let i = 0; i < count; i++) {
+                            let hOffset = step * i;
+                            if (subMode === 'split_complementary' && count === 3) {
+                                const angles = [0, 150, 210];
+                                hOffset = angles[i] || 0;
+                            }
+                            
+                            // 人間の視覚的な偏りを軽減するための簡易的な非線形補正
+                            let perceivedH = (baseH + hOffset) % 360;
+                            if (perceivedH > 60 && perceivedH < 120) perceivedH -= 10; // 黄緑付近を少し寄せる
+                            else if (perceivedH > 220 && perceivedH < 280) perceivedH += 10; // 青付近を少し広げる
+                            
+                            okList.push({ l: baseL, c: baseC, h: perceivedH });
+                        }
+                    } else if (subMode === 'dominant_color') {
+                        for (let i = 0; i < count; i++) {
+                            okList.push({ l: 0.25 + (0.65 / count) * i, c: baseC, h: baseH });
+                        }
+                    } else if (subMode === 'dominant_tone' || subMode === 'tone_in_tone') {
+                        for (let i = 0; i < count; i++) {
+                            okList.push({ l: baseL, c: baseC, h: (baseH + (360 / count) * i) % 360 });
+                        }
+                    } else if (subMode === 'tone_on_tone') {
+                        for (let i = 0; i < count; i++) {
+                            okList.push({ l: 0.20 + (0.70 / (count - 1 || 1)) * i, c: baseC, h: baseH });
+                        }
+                    } else if (subMode === 'tonal') {
+                        const tone = CONFIG.PCCS_TONES.d;
+                        for (let i = 0; i < count; i++) {
+                            okList.push({ l: ColorMath.random(tone.L[0], tone.L[1]), c: ColorMath.random(tone.C[0], tone.C[1]), h: (baseH + 30 * i) % 360 });
+                        }
+                    } else if (subMode === 'accent_color') {
+                        for (let i = 0; i < count; i++) {
+                            if (i === count - 1) {
+                                okList.push({ l: baseL, c: 0.25, h: (baseH + 180) % 360 });
+                            } else {
+                                okList.push({ l: baseL, c: 0.05, h: (baseH + 15 * i) % 360 });
+                            }
+                        }
+                    }
+                } 
+                else if (mainMode === 'image') {
+                    const imgDef = CONFIG.IMAGE_WORDS[subMode] || CONFIG.IMAGE_WORDS.casual;
+                    const tone1 = CONFIG.PCCS_TONES[imgDef.toneKeys[0]] || CONFIG.PCCS_TONES.v;
+                    const tone2 = CONFIG.PCCS_TONES[imgDef.toneKeys[1]] || CONFIG.PCCS_TONES.lt;
+
+                    for (let i = 0; i < count; i++) {
+                        const currentTone = (i % 2 === 0) ? tone1 : tone2;
+                        let h = ColorMath.random(imgDef.hueRange[0], imgDef.hueRange[1]);
+                        let l = ColorMath.random(currentTone.L[0], currentTone.L[1]);
+                        let c = ColorMath.random(currentTone.C[0], currentTone.C[1]);
+                        okList.push({ l, c, h });
+                    }
+                }
+
+                return okList.map(ok => {
+                    const rgb = ColorMath.oklchToRgb(ok.l, ok.c, ok.h);
+                    return { 
+                        rgb, 
+                        hex: ColorMath.rgbToHex(rgb[0], rgb[1], rgb[2]), 
+                        oklch: ok,
+                        originalOklch: { ...ok },
+                        widthRatio: 1, // 初期幅の比率
+                        locked: false  // ロック状態
+                    };
+                });
+            }
+        }
+
+        /**
+         * アプリケーション状態管理 & UIコントロール (App)
+         */
+        class App {
+            constructor() {
+                this.currentColors = [];
+                this.history = [];
+                this.historyIndex = -1;
+                this.stocks = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY) || '[]');
+                this.isSplitMode = false;
+                this.touchStartX = 0;
+                this.touchStartY = 0;
+
+                this.initDOM();
+                this.bindEvents();
+                
+                if (!this.loadState()) {
+                    this.updateSubModes();
+                    this.generateNewPalette(false);
+                }
+                this.renderStocks();
+            }
+
+            toHalfWidth(str) {
+                return str.replace(/[Ａ-Ｚａ-ｚ０-９＃]/g, (s) => {
+                    return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+                }).replace(/[‐－―ー]/g, '-'); // ハイフン類も必要に応じて半角に統一
+             }
+
+            getColorCountText(count) {
+                const t = this.translations[this.currentLang];
+                return `${count}${t.colorCountUnit}`;
+            }
+
+            initDOM() {
+                this.dom = {
+                    resetCategoryBtn: document.getElementById('reset-category-btn'),
+                    resetGlobalBtn: document.getElementById('reset-global-btn'),
+                    langToggleBtn: document.getElementById('lang-toggle-btn'),
+                    mainContainer: document.getElementById('main-container'),
+                    colorPanes: document.getElementById('color-panes'),
+                    settingsPanel: document.getElementById('settings-panel'),
+                    drawerOverlay: document.getElementById('drawer-overlay'),
+                    openDrawerBtn: document.getElementById('open-drawer-btn'),
+                    closeDrawerBtn: document.getElementById('close-drawer-btn'),
+                    mainMode: document.getElementById('main-mode'),
+                    subMode: document.getElementById('sub-mode'),
+                    colorCountSlider: document.getElementById('color-count-slider'),
+                    colorCountValue: document.getElementById('color-count-value'),
+                    hueToneSettings: document.getElementById('hue-tone-settings'),
+                    hueStepSlider: document.getElementById('hue-step-slider'),
+                    hueStepInput: document.getElementById('hue-step-input'),
+                    satStepSlider: document.getElementById('sat-step-slider'),
+                    satStepInput: document.getElementById('sat-step-input'),
+                    litStepSlider: document.getElementById('lit-step-slider'),
+                    litStepInput: document.getElementById('lit-step-input'),
+                    globalHueSlider: document.getElementById('global-hue-slider'),
+                    globalHueInput: document.getElementById('global-hue-input'),
+                    globalSatSlider: document.getElementById('global-sat-slider'),
+                    globalSatInput: document.getElementById('global-sat-input'),
+                    globalLitSlider: document.getElementById('global-lit-slider'),
+                    globalLitInput: document.getElementById('global-lit-input'),
+                    undoBtn: document.getElementById('undo-btn'),
+                    redoBtn: document.getElementById('redo-btn'),
+                    saveStockBtn: document.getElementById('save-stock-btn'),
+                    stockList: document.getElementById('stock-list'),
+                    copyCssBtn: document.getElementById('copy-current-css-btn'),
+                    copyTailwindBtn: document.getElementById('copy-tailwind-btn'),
+                    exportJsonBtn: document.getElementById('export-current-json-btn'),
+                    exportCsvBtn: document.getElementById('export-csv-btn'),
+                    helpBtn: document.getElementById('help-btn'),
+                    helpModal: document.getElementById('help-modal'),
+                    toast: document.getElementById('toast'),
+                    toastMsg: document.getElementById('toast-msg'),
+                    modeGradient: document.getElementById('mode-gradient'),
+                    modeSplit: document.getElementById('mode-split'),
+                    keepBaseUpdateBtn: document.getElementById('keep-base-update-btn'),
+                    resetWidthsBtn: document.getElementById('reset-widths-btn')
+                };
+            }
+
+            bindEvents() {
+                this.currentLang = 'ja';
+                this.translations = {
+                    ja: {
+                        editScreen: '編集画面',
+                        colorCount: '色数',
+                        globalAdjustment: '調整',
+                        globalHueLabel: '色相調整',
+                        globalSatLabel: '彩度調整',
+                        globalLitLabel: '明度調整',
+                        colorCountUnit: '色',
+                        paletteCategory: '配色カテゴリ',
+                        displayMode: '表示モード',
+                        gradient: 'グラデーション',
+                        split: 'きっぱり分ける',
+                        stockList: 'ストック一覧 (最大20個)',
+                        copyCss: 'CSSコピー',
+                        copyTailwind: 'Tailwindコピー',
+                        exportJson: 'JSON出力',
+                        exportCsv: 'CSV出力',
+                        resetWidths: '幅をリセット',
+                        save: '保存',
+                        generate: '生成',
+                        random: 'ランダム',
+                        update: '更新',
+                        hueStepLabel: '色相ステップ',
+                        satStepLabel: '彩度ステップ',
+                        litStepLabel: '明度ステップ',
+                        shortcuts: {
+                            title: 'ショートカットキー',
+                            spaceKey: 'Space',
+                            spaceVal: '生成',
+                            rKey: 'R',
+                            rVal: 'ランダム',
+                            zVal: '一つ前に戻る',
+                            yVal: '一つ後に進む',
+                            sKey: 'Ctrl + S',
+                            sVal: '保存',
+                            swipeKey: 'スワイプ (左右)',
+                            swipeVal: '配色切り替え',
+                            close: '（画面クリックで閉じます）'
+                        },
+                        mainModes: ['① OKLCH色相トーン配色', '② 色彩理論・体系配色', '③ イメージワード配色'],
+                        subModes: {
+                            custom: 'カスタムステップ調整',
+                            camaieu: 'カマイユ (微小変化)',
+                            faux_camaieu: 'フォカマイユ (類似変化)',
+                            dominant_color: 'ドミナントカラー (同一色相)',
+                            dominant_tone: 'ドミナントトーン (同一トーン)',
+                            tone_on_tone: 'トーンオントーン (明度対比)',
+                            tone_in_tone: 'トーンイントーン (類似トーン)',
+                            tonal: 'トーナル配色 (ダルトーン系)',
+                            accent_color: 'アクセントカラー (対照色強調)',
+                            dyad: 'ダイアード / 2色補色 (2色)',
+                            triad: 'トライアド / 3等分 (3色)',
+                            split_complementary: 'スプリットコンプリメンタリー (3色)',
+                            tetrad: 'テトラード / 4等分 (4色)',
+                            pentad: 'ペンタード / 5等分 (5色)',
+                            hexad: 'ヘクサード / 6等分 (6色)',
+                            casual: 'カジュアル',
+                            classic: 'クラシック',
+                            clear: 'クリア',
+                            chic: 'シック',
+                            dynamic: 'ダイナミック',
+                            modern: 'モダン',
+                            warm_natural: 'ウォームナチュラル',
+                            fresh_natural: 'フレッシュナチュラル',
+                            elegant: 'エレガント',
+                            romantic: 'ロマンチック'
+                        }
+                    },
+                    en: {
+                        editScreen: 'Edit Panel',
+                        colorCount: 'Colors',
+                        globalAdjustment: 'Adjustment',
+                        globalHueLabel: 'Hue Adjustment',
+                        globalSatLabel: 'Chroma Adjustment',
+                        globalLitLabel: 'Lightness Adjustment',
+                        colorCountUnit: ' colors',
+                        paletteCategory: 'Palette Category',
+                        displayMode: 'Display Mode',
+                        gradient: 'Gradient',
+                        split: 'Split',
+                        stockList: 'Stock List (Max 20)',
+                        copyCss: 'Copy CSS',
+                        copyTailwind: 'Copy Tailwind',
+                        exportJson: 'Export JSON',
+                        exportCsv: 'Export CSV',
+                        resetWidths: 'Reset Widths',
+                        save: 'Save',
+                        generate: 'Generate',
+                        random: 'Random',
+                        update: 'Update',
+                        hueStepLabel: 'Hue Step',
+                        satStepLabel: 'Chroma Step',
+                        litStepLabel: 'Lightness Step',
+                        shortcuts: {
+                            title: 'Keyboard Shortcuts',
+                            spaceKey: 'Space',
+                            spaceVal: 'GENERATE',
+                            rKey: 'R',
+                            rVal: 'RANDOM',
+                            zVal: 'Undo',
+                            yVal: 'Redo',
+                            sKey: 'Ctrl + S',
+                            sVal: 'SAVE',
+                            swipeKey: 'Swipe (Left/Right)',
+                            swipeVal: 'Switch Palette',
+                            close: '(Click anywhere to close)'
+                        },
+                        mainModes: ['① OKLCH Hue & Tone', '② Color Theory & Systems', '③ Image Words'],
+                        subModes: {
+                            custom: 'Custom Step Adjustment',
+                            camaieu: 'Camaieu (Micro Variation)',
+                            faux_camaieu: 'Faux Camaieu (Similar Variation)',
+                            dominant_color: 'Dominant Color (Same Hue)',
+                            dominant_tone: 'Dominant Tone (Same Tone)',
+                            tone_on_tone: 'Tone on Tone (Lightness Contrast)',
+                            tone_in_tone: 'Tone in Tone (Similar Tone)',
+                            tonal: 'Tonal (Dull Tone System)',
+                            accent_color: 'Accent Color (Contrast Emphasis)',
+                            dyad: 'Dyad / Complementary (2 Colors)',
+                            triad: 'Triad / 3-Split (3 Colors)',
+                            split_complementary: 'Split Complementary (3 Colors)',
+                            tetrad: 'Tetrad / 4-Split (4 Colors)',
+                            pentad: 'Pentad / 5-Split (5 Colors)',
+                            hexad: 'Hexad / 6-Split (6 Colors)',
+                            casual: 'Casual',
+                            classic: 'Classic',
+                            clear: 'Clear',
+                            chic: 'Chic',
+                            dynamic: 'Dynamic',
+                            modern: 'Modern',
+                            warm_natural: 'Warm Natural',
+                            fresh_natural: 'Fresh Natural',
+                            elegant: 'Elegant',
+                            romantic: 'Romantic'
+                        }
+                    }
+                };
+
+                if (this.dom.resetCategoryBtn) {
+                    this.dom.resetCategoryBtn.addEventListener('click', () => this.resetHueToneSettings());
+                }
+                if (this.dom.resetGlobalBtn) {
+                    this.dom.resetGlobalBtn.addEventListener('click', () => this.resetGlobalSettings());
+                }
+
+                if (this.dom.langToggleBtn) {
+                    this.dom.langToggleBtn.addEventListener('click', () => {
+                        this.currentLang = this.currentLang === 'ja' ? 'en' : 'ja';
+                        this.dom.langToggleBtn.textContent = this.currentLang === 'ja' ? '🇯🇵' : '🇺🇸';
+                        this.dom.langToggleBtn.title = this.currentLang === 'ja' ? '言語切替 / Language' : 'Language Switch / 日本語';
+                        this.updateTexts();
+                    });
+                }
+
+                window.addEventListener('resize', () => {
+                    this.renderPanes();
+                });
+                this.dom.colorCountSlider.addEventListener('input', (e) => {
+                    this.dom.colorCountValue.textContent = this.getColorCountText(e.target.value);
+                    this.updateSubModes();
+                    this.generateNewPalette(true);
+                });
+
+                this.dom.mainMode.addEventListener('change', () => {
+                    this.updateSubModes();
+                    this.generateNewPalette(true);
+                });
+
+                this.dom.subMode.addEventListener('change', () => this.generateNewPalette(true));
+
+                // スライダーとインプットの同期処理を抽象化
+                const setupSync = (slider, input, min, max, isFloat) => {
+                    slider.addEventListener('input', (e) => {
+                        input.value = isFloat ? parseFloat(e.target.value).toFixed(2) : e.target.value;
+                        this.generateNewPalette(true);
+                    });
+                    input.addEventListener('input', (e) => {
+                        let converted = this.toHalfWidth(e.target.value);
+                        if (e.target.value !== converted) e.target.value = converted;
+                        let val = isFloat ? parseFloat(converted) : parseInt(converted);
+                        if (isNaN(val)) val = 0;
+                        val = Math.max(min, Math.min(max, val));
+                        slider.value = val;
+                        this.generateNewPalette(true);
+                    });
+                    input.addEventListener('change', (e) => {
+                        let val = isFloat ? parseFloat(e.target.value) : parseInt(e.target.value);
+                        if (isNaN(val)) val = 0;
+                        e.target.value = isFloat ? Math.max(min, Math.min(max, val)).toFixed(2) : Math.max(min, Math.min(max, val));
+                    });
+                };
+
+                // 色相・彩度・明度ステップの連動を初期化
+                setupSync(this.dom.hueStepSlider, this.dom.hueStepInput, -360, 360, false);
+                setupSync(this.dom.satStepSlider, this.dom.satStepInput, -1.0, 1.0, true);
+                setupSync(this.dom.litStepSlider, this.dom.litStepInput, -1.0, 1.0, true);
+                
+                // 全体調整用スライダーの連動を初期化
+                const bindGlobalSync = (slider, input, min, max) => {
+                    slider.addEventListener('input', (e) => {
+                        input.value = e.target.value;
+                        this.applyGlobalAdjustmentsAndRender(true);
+                    });
+                    input.addEventListener('input', (e) => {
+                        let converted = this.toHalfWidth(e.target.value);
+                        if (e.target.value !== converted) e.target.value = converted;
+                        let val = parseInt(converted);
+                        if (isNaN(val)) val = 0;
+                        val = Math.max(min, Math.min(max, val));
+                        slider.value = val;
+                        this.applyGlobalAdjustmentsAndRender(true);
+                    });
+                    input.addEventListener('change', (e) => {
+                        let val = parseInt(e.target.value);
+                        if (isNaN(val)) val = 0;
+                        e.target.value = Math.max(min, Math.min(max, val));
+                    });
+                };
+                bindGlobalSync(this.dom.globalHueSlider, this.dom.globalHueInput, -180, 180);
+                bindGlobalSync(this.dom.globalSatSlider, this.dom.globalSatInput, -100, 100);
+                bindGlobalSync(this.dom.globalLitSlider, this.dom.globalLitInput, -100, 100);
+
+                document.getElementById('random-btn').addEventListener('click', () => this.generateNewPalette(false));
+                document.getElementById('update-btn').addEventListener('click', () => {
+                    this.randomizeSettings();
+                    this.generateNewPalette(false);
+                });
+                
+                if (this.dom.keepBaseUpdateBtn) {
+                    this.dom.keepBaseUpdateBtn.addEventListener('click', () => this.generateNewPalette(true));
+                }
+
+                // 追加: 境界線リセットボタンのクリックイベント
+                if (this.dom.resetWidthsBtn) {
+                    this.dom.resetWidthsBtn.addEventListener('click', () => {
+                        this.currentColors.forEach(c => c.widthRatio = 1);
+                        this.renderPanes();
+                        this.pushHistory(this.currentColors);
+                    });
+                }
+
+                this.dom.modeGradient.addEventListener('click', () => this.setDisplayMode(false));
+                this.dom.modeSplit.addEventListener('click', () => this.setDisplayMode(true));
+
+                this.dom.saveStockBtn.addEventListener('click', () => this.saveStock());
+                
+                // コピー & エクスポート
+                this.dom.copyCssBtn.addEventListener('click', () => this.copyCss());
+                this.dom.copyTailwindBtn.addEventListener('click', () => this.copyTailwind());
+                this.dom.exportJsonBtn.addEventListener('click', () => this.exportJson());
+                this.dom.exportCsvBtn.addEventListener('click', () => this.exportCsv());
+
+                this.dom.undoBtn.addEventListener('click', () => this.undo());
+                this.dom.redoBtn.addEventListener('click', () => this.redo());
+
+                this.dom.openDrawerBtn.addEventListener('click', () => this.toggleDrawer(true));
+                this.dom.closeDrawerBtn.addEventListener('click', () => this.toggleDrawer(false));
+                this.dom.drawerOverlay.addEventListener('click', () => this.toggleDrawer(false));
+
+                if (this.dom.helpBtn) {
+                    this.dom.helpBtn.addEventListener('click', () => this.dom.helpModal.classList.remove('hidden'));
+                }
+                if (this.dom.helpBtn) {
+                    this.dom.helpBtn.addEventListener('click', () => this.dom.helpModal.classList.remove('hidden'));
+                }
+                if (this.dom.helpModal) {
+                    this.dom.helpModal.addEventListener('click', () => this.dom.helpModal.classList.add('hidden'));
+                }
+
+                window.addEventListener('keydown', (e) => this.handleShortcuts(e));
+
+                this.dom.mainContainer.addEventListener('touchstart', (e) => {
+                    this.touchStartX = e.touches[0].clientX;
+                    this.touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+
+                this.dom.mainContainer.addEventListener('touchend', (e) => {
+                    // リサイズハンドルや色領域ペイン、入力欄、ボタン上でのタッチ操作時はスワイプ生成を無効化
+                    if (e.target.closest('.resize-handle') || e.target.closest('.color-pane') || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                        return;
+                    }
+                    const deltaX = e.changedTouches[0].clientX - this.touchStartX;
+                    const deltaY = e.changedTouches[0].clientY - this.touchStartY;
+
+                    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
+                        if (deltaX < 0) this.generateNewPalette(false);
+                        else this.undo();
+                    }
+                }, { passive: true });
+            }
+
+            handleShortcuts(e) {
+                if (!this.dom.helpModal.classList.contains('hidden')) {
+                    this.dom.helpModal.classList.add('hidden');
+                    return;
+                }
+
+                const activeEl = document.activeElement;
+                const isInput = ['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName);
+
+                if (isInput) {
+                    if (e.ctrlKey || e.metaKey) {
+                        const key = e.key.toLowerCase();
+                        if (['s', 'z', 'y'].includes(key)) {
+                            return;
+                        }
+                    }
+                    return;
+                }
+
+                if (e.ctrlKey || e.metaKey) {
+                    const key = e.key.toLowerCase();
+                    if (key === 'z') { e.preventDefault(); this.undo(); }
+                    else if (key === 'y') { e.preventDefault(); this.redo(); }
+                    else if (key === 's') { e.preventDefault(); this.saveStock(); }
+                    return;
+                }
+
+                if (e.code === 'Space') { e.preventDefault(); this.generateNewPalette(false); }
+                else if (e.key.toLowerCase() === 'r') { e.preventDefault(); this.randomizeSettings(); this.generateNewPalette(false); }
+            }
+
+            toggleDrawer(open) {
+                if (open) {
+                    this.dom.settingsPanel.classList.remove('-translate-x-full');
+                    this.dom.drawerOverlay.classList.remove('hidden');
+                } else {
+                    this.dom.settingsPanel.classList.add('-translate-x-full');
+                    this.dom.drawerOverlay.classList.add('hidden');
+                }
+            }
+
+            setDisplayMode(split) {
+                this.isSplitMode = split;
+                if (split) {
+                    this.dom.modeSplit.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-white shadow transition-all cursor-pointer';
+                    this.dom.modeSplit.style.backgroundColor = '#3B82F6';
+                    this.dom.modeGradient.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-white/70 hover:text-white transition-all cursor-pointer';
+                    this.dom.modeGradient.style.backgroundColor = '';
+                } else {
+                    this.dom.modeGradient.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-white shadow transition-all cursor-pointer';
+                    this.dom.modeGradient.style.backgroundColor = '#3B82F6';
+                    this.dom.modeSplit.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-white/70 hover:text-white transition-all cursor-pointer';
+                    this.dom.modeSplit.style.backgroundColor = '';
+                }
+                this.updateBackground();
+                this.saveState();
+            }
+
+            updateSubModes() {
+                const mainVal = this.dom.mainMode.value;
+                const prevSubVal = this.dom.subMode.value;
+                const count = parseInt(this.dom.colorCountSlider.value);
+                this.dom.subMode.innerHTML = '';
+
+                if (mainVal === 'hue_tone') {
+                    this.dom.subMode.classList.add('hidden');
+                    this.dom.hueToneSettings.classList.remove('hidden');
+                    if (this.dom.resetCategoryBtn) this.dom.resetCategoryBtn.classList.remove('hidden');
+                } else {
+                    if (this.dom.resetCategoryBtn) this.dom.resetCategoryBtn.classList.add('hidden');
+                    this.dom.subMode.classList.remove('hidden');
+                    this.dom.hueToneSettings.classList.add('hidden');
+
+                    const options = CONFIG.SUB_MODES[mainVal] || [];
+                    
+                    // 固定色数系サブカテゴリのマッピング定義（ダイアード ↔ トライアド ↔ テトラード ↔ ペンタード ↔ ヘクサード）
+                    const countBasedSubModes = {
+                        2: 'dyad',
+                        3: 'triad',
+                        4: 'tetrad',
+                        5: 'pentad',
+                        6: 'hexad'
+                    };
+                    const fixedCountValues = Object.values(countBasedSubModes);
+
+                    let targetSubVal = prevSubVal;
+                    // ユーザーが「ダイアードやトライアドなど」を選択中で、スライダー等で色数を変更した場合
+                    if (fixedCountValues.includes(prevSubVal) && countBasedSubModes[count]) {
+                        targetSubVal = countBasedSubModes[count]; // 変更後の色数に対応するサブカテゴリへ自動切替
+                    }
+
+                    options.forEach(opt => {
+                        // targetCountが指定されている場合は、現在の色数と一致するものだけを表示する
+                        if (opt.targetCount && opt.targetCount !== count) return;
+                        const el = document.createElement('option');
+                        el.value = opt.value;
+                        const t = this.translations[this.currentLang];
+                        el.textContent = (t.subModes && t.subModes[opt.value]) ? t.subModes[opt.value] : opt.label;
+                        this.dom.subMode.appendChild(el);
+                    });
+
+                    // 自動切替先のサブカテゴリが新しいリスト内に存在すればそれを選択、なければ以前のものを維持
+                    if (targetSubVal && Array.from(this.dom.subMode.options).some(opt => opt.value === targetSubVal)) {
+                        this.dom.subMode.value = targetSubVal;
+                    } else if (prevSubVal && Array.from(this.dom.subMode.options).some(opt => opt.value === prevSubVal)) {
+                        this.dom.subMode.value = prevSubVal;
+                    }
+                }
+            }
+
+            randomizeSettings() {
+                if (this.dom.mainMode.value === 'hue_tone') {
+                    const hueVal = Math.floor(ColorMath.random(1, 12)) * 15;
+                    const satVal = ColorMath.random(-0.05, 0.05);
+                    const litVal = ColorMath.random(-0.1, 0.1);
+
+                    this.dom.hueStepSlider.value = hueVal;
+                    this.dom.satStepSlider.value = satVal;
+                    this.dom.litStepSlider.value = litVal;
+                    
+                    // 値をInputフィールドにも反映させる
+                    this.dom.hueStepInput.value = hueVal;
+                    this.dom.satStepInput.value = satVal.toFixed(2);
+                    this.dom.litStepInput.value = litVal.toFixed(2);
+                } else {
+                    const opts = Array.from(this.dom.subMode.options);
+                    if (opts.length > 0) {
+                        this.dom.subMode.value = opts[Math.floor(Math.random() * opts.length)].value;
+                    }
+                }
+            }
+
+            applyGlobalAdjustmentsAndRender(recordHistory = true) {
+                if (this.currentColors.length === 0) return;
+                
+                const globalHue = parseFloat(this.dom.globalHueInput.value) || 0;
+                const globalSat = (parseFloat(this.dom.globalSatInput.value) || 0) / 100;
+                const globalLit = (parseFloat(this.dom.globalLitInput.value) || 0) / 100;
+
+                this.currentColors.forEach(c => {
+                    if (!c.originalOklch) {
+                        c.originalOklch = { ...c.oklch };
+                    }
+                    const orig = c.originalOklch;
+                    
+                    let h = (orig.h + globalHue) % 360;
+                    if (h < 0) h += 360;
+                    let c_val = Math.max(0.0, Math.min(1.0, orig.c + globalSat));
+                    let l = Math.max(0.0, Math.min(1.0, orig.l + globalLit));
+
+                    const oklch = { l, c: c_val, h };
+                    const rgb = ColorMath.oklchToRgb(oklch.l, oklch.c, oklch.h);
+                    
+                    c.oklch = oklch;
+                    c.rgb = rgb;
+                    c.hex = ColorMath.rgbToHex(rgb[0], rgb[1], rgb[2]);
+                });
+
+                this.renderPanes();
+                if (recordHistory) {
+                    this.pushHistory(this.currentColors);
+                }
+            }
+
+            generateNewPalette(keepBase = false, recordHistory = true) {
+                const mainVal = this.dom.mainMode.value;
+                const subVal = this.dom.subMode.value;
+                const count = parseInt(this.dom.colorCountSlider.value);
+
+                const settings = {
+                    hueStep: parseFloat(this.dom.hueStepInput.value),
+                    satStep: parseFloat(this.dom.satStepInput.value),
+                    litStep: parseFloat(this.dom.litStepInput.value)
+                };
+
+                let baseState = null;
+                if (keepBase && this.currentColors.length > 0) {
+                    const firstColor = this.currentColors[0];
+                    const targetOklch = firstColor.originalOklch || firstColor.oklch || ColorMath.rgbToOklch(...firstColor.rgb);
+                    baseState = { ...targetOklch };
+                }
+
+                // 新しく生成
+                let newColors = PaletteGenerator.generate(mainVal, subVal, count, settings, baseState);
+
+                const globalHue = parseFloat(this.dom.globalHueInput.value) || 0;
+                const globalSat = (parseFloat(this.dom.globalSatInput.value) || 0) / 100;
+                const globalLit = (parseFloat(this.dom.globalLitInput.value) || 0) / 100;
+
+                if (globalHue !== 0 || globalSat !== 0 || globalLit !== 0) {
+                    newColors.forEach(c => {
+                        if (!c.originalOklch) c.originalOklch = { ...c.oklch };
+                        const orig = c.originalOklch;
+                        let h = (orig.h + globalHue) % 360;
+                        if (h < 0) h += 360;
+                        let c_val = Math.max(0.0, Math.min(1.0, orig.c + globalSat));
+                        let l = Math.max(0.0, Math.min(1.0, orig.l + globalLit));
+                        const oklch = { l, c: c_val, h };
+                        const rgb = ColorMath.oklchToRgb(oklch.l, oklch.c, oklch.h);
+                        c.oklch = oklch;
+                        c.rgb = rgb;
+                        c.hex = ColorMath.rgbToHex(rgb[0], rgb[1], rgb[2]);
+                    });
+                }
+
+                if (!keepBase) {
+                    if (this.dom.globalHueSlider) this.dom.globalHueSlider.value = 0;
+                    if (this.dom.globalHueInput) this.dom.globalHueInput.value = 0;
+                    if (this.dom.globalSatSlider) this.dom.globalSatSlider.value = 0;
+                    if (this.dom.globalSatInput) this.dom.globalSatInput.value = 0;
+                    if (this.dom.globalLitSlider) this.dom.globalLitSlider.value = 0;
+                    if (this.dom.globalLitInput) this.dom.globalLitInput.value = 0;
+                }
+
+                // 修正: 既存の色配列（this.currentColors）の中でロックされている位置の色は、色数や生成処理に関わらず絶対に上書きされず保持されるようにする
+                newColors = newColors.map((c, i) => {
+                    const old = this.currentColors[i];
+                    if (old && old.locked) {
+                        // 完全に古い状態（ロック状態、色、幅比率）をそのまま維持して返す
+                        return {
+                            ...old,
+                            widthRatio: old.widthRatio !== undefined ? old.widthRatio : 1
+                        };
+                    }
+                    if (old) {
+                        return {
+                            ...c,
+                            widthRatio: old.widthRatio !== undefined ? old.widthRatio : 1,
+                            locked: false
+                        };
+                    }
+                    return {
+                        ...c,
+                        widthRatio: 1,
+                        locked: false
+                    };
+                });
+
+                // 修正: ドラッグ時と同様に、各ペインの比率が最小許容サイズ（最小50px相当）を下回らないように厳密にクランプする
+                const containerWidth = this.dom.colorPanes.offsetWidth || 800; // 取得できない場合のフォールバック幅
+                const minPx = 50;
+                
+                // 全体の widthRatio の合計を計算
+                let totalRatio = newColors.reduce((sum, c) => sum + c.widthRatio, 0);
+                // 50pxが全体の比率に対してどれくらいの比率値に相当するかを計算
+                const minRatioLimit = (minPx / containerWidth) * totalRatio;
+
+                // 各ペインが最小制限を下回っている場合は、最小サイズに引き上げる
+                newColors.forEach(c => {
+                    if (c.widthRatio < minRatioLimit) {
+                        c.widthRatio = minRatioLimit;
+                    }
+                });
+
+                this.currentColors = newColors;
+                this.renderPanes();
+
+                if (recordHistory) {
+                    this.pushHistory(this.currentColors);
+                }
+            }
+
+            /**
+             * ペインの初期レンダリング（全色数変更時や新規生成時）
+             */
+            renderPanes() {
+                this.dom.colorPanes.innerHTML = '';
+                const count = this.currentColors.length;
+
+                this.currentColors.forEach((colorObj, index) => {
+                    const pane = document.createElement('div');
+                    pane.className = 'color-pane h-full flex flex-col justify-end items-center pb-40 md:pb-28 relative z-0';
+                    
+                    // 修正: widthRatio が数値であることを強制し、不正な場合は 1 にフォールバック
+                    this.currentColors.forEach(c => {
+                        if (c.widthRatio === undefined || isNaN(c.widthRatio) || c.widthRatio <= 0) {
+                            c.widthRatio = 1;
+                        }
+                    });
+                    const totalRatio = this.currentColors.reduce((sum, c) => sum + c.widthRatio, 0);
+                    const widthPercent = (colorObj.widthRatio / totalRatio) * 100;
+                    pane.style.width = `${widthPercent}%`;
+                    pane.style.flexShrink = '0';
+                    pane.style.flexGrow = '0';
+
+                    pane.draggable = true; // ドラッグ並び替え用
+
+                    const textColor = ColorMath.getAccessibleTextColor(colorObj.rgb[0], colorObj.rgb[1], colorObj.rgb[2]);
+                    pane.style.color = textColor;
+
+                    // --- ドラッグ＆ドロップによる並び替えイベント (PC用) ---
+                    pane.addEventListener('dragstart', (e) => {
+                        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                            e.preventDefault();
+                            return;
+                        }
+                        if (e.target.tagName === 'INPUT' || e.target.closest('input')) {
+                            e.preventDefault();
+                            return;
+                        }
+                        e.dataTransfer.setData('text/plain', index);
+                        pane.classList.add('opacity-40');
+                    });
+                    pane.addEventListener('dragend', () => {
+                        pane.classList.remove('opacity-40');
+                    });
+                    pane.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                    });
+                    pane.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+                        const toIdx = index;
+                        if (fromIdx !== toIdx) {
+                            const moved = this.currentColors.splice(fromIdx, 1)[0];
+                            this.currentColors.splice(toIdx, 0, moved);
+                            this.renderPanes();
+                            this.pushHistory(this.currentColors);
+                        }
+                    });
+
+                    // --- スマホ用：タッチスワイプによる色領域の移動（並び替え）イベント ---
+                    let paneTouchStartX = 0;
+                    let paneTouchStartY = 0;
+                    pane.addEventListener('touchstart', (e) => {
+                        // リサイズ操作中であれば、ペイン移動の判定を絶対に発火させない
+                        if (this.isResizing) {
+                            return;
+                        }
+                        if (e.target.closest('.resize-handle') || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                            return;
+                        }
+                        const rect = pane.getBoundingClientRect();
+                        if (e.touches[0].clientX > rect.right - 20) {
+                            return;
+                        }
+                        if (rect.width < 70) {
+                            const relativeX = e.touches[0].clientX - rect.left;
+                            if (relativeX < 10 || relativeX > rect.width - 10) {
+                                return;
+                            }
+                        }
+                        paneTouchStartX = e.touches[0].clientX;
+                        paneTouchStartY = e.touches[0].clientY;
+                    }, { passive: true });
+
+                    pane.addEventListener('touchend', (e) => {
+                        if (e.target.closest('.resize-handle') || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                            return;
+                        }
+                        const endX = e.changedTouches[0].clientX;
+                        const endY = e.changedTouches[0].clientY;
+                        const deltaX = endX - paneTouchStartX;
+                        const deltaY = endY - paneTouchStartY;
+
+                        // 横方向へのスワイプが一定以上（50px超）の場合、指を離した位置のペインへ直接移動
+                        if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
+                            const paneElements = Array.from(this.dom.colorPanes.children);
+                            let targetIndex = index;
+
+                            paneElements.forEach((pEl, pIdx) => {
+                                const rect = pEl.getBoundingClientRect();
+                                if (endX >= rect.left && endX <= rect.right) {
+                                    targetIndex = pIdx;
+                                }
+                            });
+
+                            if (targetIndex !== index) {
+                                const moved = this.currentColors.splice(index, 1)[0];
+                                this.currentColors.splice(targetIndex, 0, moved);
+                                this.renderPanes();
+                                this.pushHistory(this.currentColors);
+                            }
+                        }
+                    }, { passive: true });
+
+                    // --- ロックボタン（カラーコードの少し上） ---
+                    const lockBtn = document.createElement('button');
+                    // 文字を排し、アイコン表現のみにしてサイズを拡大
+                    lockBtn.innerHTML = colorObj.locked ? '🔒' : '🔓';
+                    lockBtn.className = 'w-11 h-11 flex items-center justify-center text-lg md:text-xl bg-black/40 hover:bg-black/60 rounded-full cursor-pointer transition-colors shadow-md mb-1.5';
+                    lockBtn.title = colorObj.locked ? 'ロック中 (クリックで解除)' : 'クリックで色をロック';
+                    lockBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        
+                        // 修正: 入力値の同期を先に行う
+                        const inputEl = pane.querySelector('input[type="text"]');
+                        if (inputEl) {
+                            this.handleColorEditInput(index, inputEl.value, pane);
+                        }
+
+                        // 修正: オブジェクト更新後に、確実に対象の locked 状態を反転させる
+                        if (this.currentColors[index]) {
+                            this.currentColors[index].locked = !this.currentColors[index].locked;
+                            if (this.currentColors[index].widthRatio === undefined || isNaN(this.currentColors[index].widthRatio)) {
+                                this.currentColors[index].widthRatio = 1;
+                            }
+                        }
+                        this.renderPanes();
+                    });
+                    pane.appendChild(lockBtn);
+
+                    // --- カラーコード入力欄 ---
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = colorObj.hex;
+                    input.maxLength = 7;
+                    input.ariaLabel = 'カラーコードを編集';
+                    input.className = `bg-transparent border-none outline-none text-center color-text font-bold tracking-wider focus:opacity-100 drop-shadow-md pb-0 md:pb-0 w-full uppercase truncate px-0.5 md:px-1`;
+
+                    // ペインの幅に連動してフォントサイズを動的計算（初期化）
+                    const updateFontSize = () => {
+                        const paneWidth = pane.clientWidth || 100;
+                        const calculatedSize = Math.max(10, Math.min(32, paneWidth * 0.15));
+                        input.style.fontSize = `${calculatedSize}px`;
+                    };
+                    
+                    // 修正: input上でマウスをドラッグして文字選択できるように、親ペインへのドラッグ伝播やdraggable属性を制御
+                    input.addEventListener('mousedown', (e) => {
+                        e.stopPropagation();
+                        pane.draggable = false; // 文字選択中はペインのドラッグを無効化
+                    });
+                    input.addEventListener('touchstart', (e) => {
+                        e.stopPropagation();
+                        pane.draggable = false; // タッチ端末でもドラッグを無効化
+                    }, { passive: true });
+                    input.addEventListener('blur', () => {
+                        pane.draggable = true; // フォーカスが外れたらペインのドラッグを復元
+                    });
+                    input.addEventListener('selectstart', (e) => {
+                        e.stopPropagation();
+                    });
+
+                    input.addEventListener('input', (e) => this.handleColorEditInput(index, e.target.value, pane));
+                    input.addEventListener('change', () => {
+                        pane.draggable = true;
+                        this.pushHistory(this.currentColors);
+                    });
+
+                    // --- コピーボタン ---
+                    const copyBtn = document.createElement('button');
+                    copyBtn.textContent = 'Copy';
+                    copyBtn.className = 'text-xs uppercase tracking-widest opacity-60 font-semibold mb-2 md:mb-4 hover:opacity-100 transition-opacity cursor-pointer';
+                    copyBtn.addEventListener('click', () => this.copyToClipboard(this.currentColors[index].hex));
+
+                    pane.appendChild(input);
+                    pane.appendChild(copyBtn);
+
+                    // --- 境界線リサイズハンドル（最後尾以外に設置） ---
+                    if (index < count - 1) {
+                        const handle = document.createElement('div');
+                        handle.className = 'resize-handle';
+                        
+                        const setupResize = (getClientX, addEvents, removeEvents) => {
+                            return (e) => {
+                                e.preventDefault();
+                                this.isResizing = true; // リサイズ中フラグを立てる
+                                handle.style.background = 'rgba(255, 255, 255, 0.2)';
+                                let lastX = getClientX(e);
+                                const leftPaneObj = this.currentColors[index];
+                                const rightPaneObj = this.currentColors[index + 1];
+
+                                const onMove = (moveEvent) => {
+                                    const currentX = getClientX(moveEvent);
+                                    const deltaX = currentX - lastX;
+                                    lastX = currentX;
+
+                                    if (deltaX === 0) return;
+                                    const currentPairTotalWidth = pane.offsetWidth + (pane.nextElementSibling ? pane.nextElementSibling.offsetWidth : 0);
+                                    if (currentPairTotalWidth === 0) return;
+
+                                    const totalRatio = this.currentColors.reduce((sum, c) => sum + c.widthRatio, 0);
+                                    const pairSum = leftPaneObj.widthRatio + rightPaneObj.widthRatio;
+                                    const deltaRatio = (deltaX / currentPairTotalWidth) * pairSum;
+                                    
+                                    let newLeft = leftPaneObj.widthRatio + deltaRatio;
+                                    let newRight = rightPaneObj.widthRatio - deltaRatio;
+                                
+                                    const containerWidth = this.dom.colorPanes.offsetWidth;
+                                    const minPx = 50; 
+                                    const minSize = (minPx / containerWidth) * totalRatio;
+                                
+                                    if (newLeft < minSize) {
+                                        const diff = minSize - newLeft;
+                                        newLeft = minSize;
+                                        newRight -= diff;
+                                    } else if (newRight < minSize) {
+                                        const diff = minSize - newRight;
+                                        newRight = minSize;
+                                        newLeft -= diff;
+                                    }
+                                
+                                    leftPaneObj.widthRatio = newLeft;
+                                    rightPaneObj.widthRatio = newRight;
+                                
+                                    pane.style.width = `${(newLeft / totalRatio) * 100}%`;
+                                    const nextPaneEl = pane.nextElementSibling;
+                                    if (nextPaneEl) {
+                                        nextPaneEl.style.width = `${(newRight / totalRatio) * 100}%`;
+                                    }
+                                    
+                                    const updatePaneFont = (p) => {
+                                        const inp = p.querySelector('input[type="text"]');
+                                        if (inp) {
+                                            const pWidth = p.clientWidth || 100;
+                                            inp.style.fontSize = `${Math.max(10, Math.min(32, pWidth * 0.15))}px`;
+                                        }
+                                    };
+                                    updatePaneFont(pane);
+                                    if (nextPaneEl) updatePaneFont(nextPaneEl);
+
+                                    this.updateBackground();
+                                };
+
+                                const onEnd = () => {
+                                    this.isResizing = false; // リサイズ終了
+                                    handle.style.background = '';
+                                    removeEvents(onMove, onEnd);
+                                    this.pushHistory(this.currentColors);
+                                };
+
+                                addEvents(onMove, onEnd);
+                            };
+                        };
+
+                        // マウス操作用
+                        handle.addEventListener('mousedown', setupResize(
+                            (e) => e.clientX,
+                            (move, end) => {
+                                window.addEventListener('mousemove', move);
+                                window.addEventListener('mouseup', end);
+                            },
+                            (move, end) => {
+                                window.removeEventListener('mousemove', move);
+                                window.removeEventListener('mouseup', end);
+                            }
+                        ));
+
+                        // スマホタッチ操作用
+                        handle.addEventListener('touchstart', (e) => {
+                            e.stopPropagation(); // 境界線操作が色領域の移動（並び替え）と競合するのを防ぐ
+                            setupResize(
+                                (ev) => ev.touches[0].clientX,
+                                (move, end) => {
+                                    window.addEventListener('touchmove', move, { passive: false });
+                                    window.addEventListener('touchend', end);
+                                },
+                                (move, end) => {
+                                    window.removeEventListener('touchmove', move);
+                                    window.removeEventListener('touchend', end);
+                                }
+                            )(e);
+                        }, { passive: false });
+
+                        pane.appendChild(handle);
+                    }
+
+                    this.dom.colorPanes.appendChild(pane);
+                    updateFontSize();
+                });
+
+                this.updateBackground();
+            }
+
+            /**
+             * HEX手入力時のインプレース更新（DOM再構築を回避してフォーカス維持）
+             */
+            handleColorEditInput(index, hexValue, paneEl) {
+                // 修正: 全角で入力された英数字や#を自動的に半角に変換し、入力欄の表示も同期させる
+                hexValue = this.toHalfWidth(hexValue);
+                const inputEl = paneEl.querySelector('input[type="text"]');
+                if (inputEl && inputEl.value !== hexValue) {
+                    const start = inputEl.selectionStart;
+                    inputEl.value = hexValue;
+                    inputEl.setSelectionRange(start, start);
+                }
+
+                if (hexValue && !hexValue.startsWith('#')) hexValue = '#' + hexValue;
+                const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(hexValue);
+                
+                const oldObj = this.currentColors[index] || {};
+                if (!oldObj.widthRatio) oldObj.widthRatio = 1;
+                
+                if (isValidHex) {
+                    let h = hexValue.replace(/^#/, '');
+                    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+                    const num = parseInt(h, 16);
+                    const rgb = [num >> 16, (num >> 8) & 255, num & 255];
+                    
+                    const oklch = ColorMath.rgbToOklch(rgb[0], rgb[1], rgb[2]);
+                    
+                    // 修正: 既存の locked や widthRatio などのプロパティを確実に明示的に引き継ぐ
+                    this.currentColors[index] = { 
+                        ...oldObj,
+                        rgb, 
+                        hex: hexValue.toUpperCase(), 
+                        oklch,
+                        originalOklch: { ...oklch },
+                        widthRatio: oldObj.widthRatio !== undefined ? oldObj.widthRatio : 1,
+                        locked: oldObj.locked !== undefined ? oldObj.locked : false
+                    };
+                    
+                    const textColor = ColorMath.getAccessibleTextColor(rgb[0], rgb[1], rgb[2]);
+                    paneEl.style.color = textColor;
+                    this.updateBackground();
+                } else {
+                    // 入力途中であっても hex 文字列と既存のロック状態を保持する
+                    this.currentColors[index] = {
+                        ...oldObj,
+                        hex: hexValue
+                    };
+                }
+            }
+
+            updateBackground() {
+                const panes = Array.from(this.dom.colorPanes.children);
+                const hexes = this.currentColors.map(c => c.hex);
+
+                // 実際のDOM要素のピクセル幅（clientWidth）が取得できる場合は、それをもとに正確に背景を計算する
+                if (panes.length === hexes.length && this.dom.colorPanes.clientWidth > 0) {
+                    const totalWidth = this.dom.colorPanes.clientWidth;
+                    let currentPercent = 0;
+                    const stops = [];
+
+                    panes.forEach((pane, i) => {
+                        const paneWidth = pane.clientWidth;
+                        const startPct = currentPercent;
+                        const endPct = currentPercent + (paneWidth / totalWidth) * 100;
+
+                        if (this.isSplitMode) {
+                            // きっぱり分けるモード：各領域の実際の描画幅に合わせる
+                            stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
+                        } else {
+                            // グラデーションモード：各領域の実際の中央位置で滑らかに繋ぐ
+                            const midPct = startPct + ((endPct - startPct) / 2);
+                            if (i === 0) {
+                                stops.push(`${hexes[i]} ${startPct}%`);
+                                stops.push(`${hexes[i]} ${midPct}%`);
+                            } else if (i === panes.length - 1) {
+                                stops.push(`${hexes[i]} ${midPct}%`);
+                                stops.push(`${hexes[i]} 100%`);
+                            } else {
+                                stops.push(`${hexes[i]} ${midPct}%`);
+                            }
+                        }
+                        currentPercent = endPct;
+                    });
+
+                    this.dom.mainContainer.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
+                } else {
+                    // フォールバック（DOMがまだ描画されていない初期状態など）
+                    const ratios = this.currentColors.map(c => c.widthRatio);
+                    const totalRatio = ratios.reduce((sum, r) => sum + r, 0);
+                    let currentPercent = 0;
+                    const stops = [];
+
+                    ratios.forEach((ratio, i) => {
+                        const widthPercent = (ratio / totalRatio) * 100;
+                        const startPct = currentPercent;
+                        const endPct = currentPercent + widthPercent;
+
+                        if (isSplit) {
+                            stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
+                        } else {
+                            const midPct = startPct + ((endPct - startPct) / 2);
+                            if (i === 0) {
+                                stops.push(`${hexes[i]} 0%`);
+                                stops.push(`${hexes[i]} ${midPct}%`);
+                            } else if (i === hexes.length - 1) {
+                                stops.push(`${hexes[i]} ${midPct}%`);
+                                stops.push(`${hexes[i]} 100%`);
+                            } else {
+                                stops.push(`${hexes[i]} ${midPct}%`);
+                            }
+                        }
+                        currentPercent = endPct;
+                    });
+
+                    this.dom.mainContainer.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
+                }
+            }
+
+
+            saveState() {
+                const state = {
+                    currentColors: this.currentColors,
+                    mainMode: this.dom.mainMode.value,
+                    subMode: this.dom.subMode.value,
+                    colorCount: this.dom.colorCountSlider.value,
+                    isSplitMode: this.isSplitMode,
+                    globalHue: this.dom.globalHueInput.value,
+                    globalSat: this.dom.globalSatInput.value,
+                    globalLit: this.dom.globalLitInput.value,
+                    hueStep: this.dom.hueStepInput.value,
+                    satStep: this.dom.satStepInput.value,
+                    litStep: this.dom.litStepInput.value,
+                    currentLang: this.currentLang
+                };
+                localStorage.setItem(CONFIG.STATE_STORAGE_KEY, JSON.stringify(state));
+            }
+
+            loadState() {
+                try {
+                    const saved = localStorage.getItem(CONFIG.STATE_STORAGE_KEY);
+                    if (!saved) return false;
+                    const state = JSON.parse(saved);
+                    
+                    if (state.currentLang) {
+                        this.currentLang = state.currentLang;
+                        this.dom.langToggleBtn.textContent = this.currentLang === 'ja' ? '🇯🇵' : '🇺🇸';
+                        this.dom.langToggleBtn.title = this.currentLang === 'ja' ? '言語切替 / Language' : 'Language Switch / 日本語';
+                    }
+                    if (state.colorCount) {
+                        this.dom.colorCountSlider.value = state.colorCount;
+                        this.dom.colorCountValue.textContent = this.getColorCountText(state.colorCount);
+                    }
+                    if (state.mainMode) {
+                        this.dom.mainMode.value = state.mainMode;
+                    }
+                    this.updateSubModes();
+                    if (state.subMode) {
+                        this.dom.subMode.value = state.subMode;
+                    }
+                    if (state.isSplitMode !== undefined) {
+                        this.setDisplayMode(state.isSplitMode);
+                    }
+                    if (state.globalHue !== undefined) {
+                        this.dom.globalHueSlider.value = state.globalHue;
+                        this.dom.globalHueInput.value = state.globalHue;
+                    }
+                    if (state.globalSat !== undefined) {
+                        this.dom.globalSatSlider.value = state.globalSat;
+                        this.dom.globalSatInput.value = state.globalSat;
+                    }
+                    if (state.globalLit !== undefined) {
+                        this.dom.globalLitSlider.value = state.globalLit;
+                        this.dom.globalLitInput.value = state.globalLit;
+                    }
+                    if (state.hueStep !== undefined) {
+                        this.dom.hueStepSlider.value = state.hueStep;
+                        this.dom.hueStepInput.value = state.hueStep;
+                    }
+                    if (state.satStep !== undefined) {
+                        this.dom.satStepSlider.value = state.satStep;
+                        this.dom.satStepInput.value = state.satStep;
+                    }
+                    if (state.litStep !== undefined) {
+                        this.dom.litStepSlider.value = state.litStep;
+                        this.dom.litStepInput.value = state.litStep;
+                    }
+
+                    if (state.currentColors && state.currentColors.length > 0) {
+                        this.currentColors = state.currentColors;
+                        this.renderPanes();
+                        this.pushHistory(this.currentColors);
+                        this.updateTexts();
+                        return true;
+                    }
+                } catch (e) {
+                    console.error('Failed to load state', e);
+                }
+                return false;
+            }
+
+            resetHueToneSettings() {
+                if (this.dom.hueStepSlider) this.dom.hueStepSlider.value = 60;
+                if (this.dom.hueStepInput) this.dom.hueStepInput.value = 60;
+                if (this.dom.satStepSlider) this.dom.satStepSlider.value = 0;
+                if (this.dom.satStepInput) this.dom.satStepInput.value = '0.00';
+                if (this.dom.litStepSlider) this.dom.litStepSlider.value = 0;
+                if (this.dom.litStepInput) this.dom.litStepInput.value = '0.00';
+
+                this.generateNewPalette(true);
+                this.saveState();
+            }
+
+            resetGlobalSettings() {
+                if (this.dom.globalHueSlider) this.dom.globalHueSlider.value = 0;
+                if (this.dom.globalHueInput) this.dom.globalHueInput.value = 0;
+                if (this.dom.globalSatSlider) this.dom.globalSatSlider.value = 0;
+                if (this.dom.globalSatInput) this.dom.globalSatInput.value = 0;
+                if (this.dom.globalLitSlider) this.dom.globalLitSlider.value = 0;
+                if (this.dom.globalLitInput) this.dom.globalLitInput.value = 0;
+
+                this.applyGlobalAdjustmentsAndRender(true);
+                this.saveState();
+            }
+
+            pushHistory(colors) {
+                if (this.historyIndex >= 0 && this.history[this.historyIndex]) {
+                    if (JSON.stringify(this.history[this.historyIndex]) === JSON.stringify(colors)) return;
+                }
+                this.history = this.history.slice(0, this.historyIndex + 1);
+                this.history.push(JSON.parse(JSON.stringify(colors)));
+                this.historyIndex = this.history.length - 1;
+                this.updateHistoryButtons();
+                this.saveState();
+            }
+
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.currentColors = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
+                    this.dom.colorCountSlider.value = this.currentColors.length;
+                    this.dom.colorCountValue.textContent = this.getColorCountText(this.currentColors.length);
+                    this.renderPanes();
+                    this.updateHistoryButtons();
+                }
+            }
+
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.currentColors = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
+                    this.dom.colorCountSlider.value = this.currentColors.length;
+                    this.dom.colorCountValue.textContent = this.getColorCountText(this.currentColors.length);
+                    this.renderPanes();
+                    this.updateHistoryButtons();
+                }
+            }
+
+            updateHistoryButtons() {
+                this.dom.undoBtn.disabled = this.historyIndex <= 0;
+                this.dom.redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+            }
+
+            saveStock() {
+                if (this.stocks.length >= CONFIG.MAX_STOCKS) {
+                    alert(`ストックの最大保存数(${CONFIG.MAX_STOCKS}個)に達しています。不要なストックを削除してください。`);
+                    return;
+                }
+                const newStock = {
+                    id: Date.now(),
+                    name: `Stock ${this.stocks.length + 1}`,
+                    mainMode: this.dom.mainMode.value,
+                    subMode: this.dom.subMode.value,
+                    colorCount: this.dom.colorCountSlider.value,
+                    isSplitMode: this.isSplitMode,
+                    globalHue: this.dom.globalHueInput.value,
+                    globalSat: this.dom.globalSatInput.value,
+                    globalLit: this.dom.globalLitInput.value,
+                    hueStep: this.dom.hueStepInput.value,
+                    satStep: this.dom.satStepInput.value,
+                    litStep: this.dom.litStepInput.value,
+                    colors: JSON.parse(JSON.stringify(this.currentColors))
+                };
+                this.stocks.push(newStock);
+                localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(this.stocks));
+                this.renderStocks();
+            }
+
+            updateTexts() {
+                const t = this.translations[this.currentLang];
+                document.getElementById('txt-edit-screen').textContent = t.editScreen;
+                document.getElementById('txt-color-count-label').textContent = t.colorCount;
+                document.getElementById('txt-global-adjustment').textContent = t.globalAdjustment;
+                document.getElementById('txt-global-hue-label').textContent = t.globalHueLabel;
+                document.getElementById('txt-global-sat-label').textContent = t.globalSatLabel;
+                document.getElementById('txt-global-lit-label').textContent = t.globalLitLabel;
+                document.getElementById('color-count-value').textContent = this.getColorCountText(this.dom.colorCountSlider.value);
+                document.getElementById('txt-palette-category').textContent = t.paletteCategory;
+                document.getElementById('txt-display-mode').textContent = t.displayMode;
+                document.getElementById('txt-stock-list').textContent = t.stockList;
+                document.getElementById('copy-current-css-btn').textContent = t.copyCss;
+                document.getElementById('copy-tailwind-btn').textContent = t.copyTailwind;
+                document.getElementById('export-current-json-btn').textContent = t.exportJson;
+                document.getElementById('export-csv-btn').textContent = t.exportCsv;
+                document.getElementById('txt-reset-widths').textContent = t.resetWidths;
+                document.getElementById('txt-save').textContent = t.save;
+                document.getElementById('txt-generate').textContent = t.generate;
+                document.getElementById('txt-random').textContent = t.random;
+                document.getElementById('txt-update').textContent = t.update;
+                document.getElementById('txt-hue-step-label').textContent = t.hueStepLabel;
+                document.getElementById('txt-sat-step-label').textContent = t.satStepLabel;
+                document.getElementById('txt-lit-step-label').textContent = t.litStepLabel;
+                document.getElementById('txt-sc-title').textContent = t.shortcuts.title;
+                document.getElementById('txt-sc-key-space').textContent = t.shortcuts.spaceKey;
+                document.getElementById('txt-sc-val-space').textContent = t.shortcuts.spaceVal;
+                document.getElementById('txt-sc-key-r').textContent = t.shortcuts.rKey;
+                document.getElementById('txt-sc-val-r').textContent = t.shortcuts.rVal;
+                document.getElementById('txt-sc-val-z').textContent = t.shortcuts.zVal;
+                document.getElementById('txt-sc-val-y').textContent = t.shortcuts.yVal;
+                document.getElementById('txt-sc-key-s').textContent = t.shortcuts.sKey;
+                document.getElementById('txt-sc-val-s').textContent = t.shortcuts.sVal;
+                document.getElementById('txt-sc-key-swipe').textContent = t.shortcuts.swipeKey;
+                document.getElementById('txt-sc-val-swipe').textContent = t.shortcuts.swipeVal;
+                document.getElementById('txt-sc-close').textContent = t.shortcuts.close;
+                document.getElementById('mode-gradient').textContent = t.gradient;
+                document.getElementById('mode-split').textContent = t.split;
+
+                const mainModeOpts = document.getElementById('main-mode').options;
+                for (let i = 0; i < mainModeOpts.length; i++) {
+                    if (t.mainModes[i]) mainModeOpts[i].textContent = t.mainModes[i];
+                }
+
+                this.updateSubModes();
+            }
+
+            renderStocks() {
+                this.dom.stockList.innerHTML = '';
+                this.stocks.forEach((stock, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'bg-black/40 border border-white/10 rounded-xl p-3 space-y-2';
+
+                    const hexes = stock.colors.map(c => c.hex);
+                    const ratios = stock.colors.map(c => c.widthRatio !== undefined ? c.widthRatio : 1);
+                    const totalRatio = ratios.reduce((sum, r) => sum + r, 0) || 1;
+                    let currentPercent = 0;
+                    const stops = [];
+                    const isSplit = stock.isSplitMode ? true : false;
+
+                    item.innerHTML = `
+                        <div class="flex justify-between items-center gap-2">
+                            <input type="text" value="${stock.name}" class="stock-name bg-transparent text-xs font-semibold text-white border-b border-transparent hover:border-white/30 focus:border-indigo-400 outline-none w-full py-0.5">
+                            <div class="flex items-center gap-1">
+                                <button class="overwrite-btn p-1 text-white/60 hover:text-blue-400 transition-colors cursor-pointer" title="現在の配色で上書き保存">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                                    </svg>
+                                </button>
+                                <button class="delete-btn p-1 text-white/60 hover:text-red-400 transition-colors cursor-pointer" title="削除">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="stock-preview-container overflow-hidden rounded-lg border border-white/10 cursor-pointer" title="クリックで適用">
+                            <div class="preview-bar flex h-5 -mx-2 w-[calc(100%+16px)]"></div>
+                        </div>
+                    `;
+
+                    const previewBar = item.querySelector('.preview-bar');
+                    if (isSplit) {
+                        ratios.forEach((ratio, i) => {
+                            const widthPercent = (ratio / totalRatio) * 100;
+                            const colorDiv = document.createElement('div');
+                            colorDiv.className = 'h-full';
+                            colorDiv.style.width = `${widthPercent}%`;
+                            colorDiv.style.backgroundColor = hexes[i];
+                            previewBar.appendChild(colorDiv);
+                        });
+                    } else {
+                        let currentPercent = 0;
+                        const stops = [];
+                        ratios.forEach((ratio, i) => {
+                            const widthPercent = (ratio / totalRatio) * 100;
+                            const startPct = currentPercent;
+                            const endPct = currentPercent + widthPercent;
+                            const midPct = startPct + ((endPct - startPct) / 2);
+
+                            if (i === 0) {
+                                stops.push(`${hexes[i]} ${startPct}%`);
+                                stops.push(`${hexes[i]} ${midPct}%`);
+                            } else if (i === hexes.length - 1) {
+                                stops.push(`${hexes[i]} ${midPct}%`);
+                                stops.push(`${hexes[i]} 100%`);
+                            } else {
+                                stops.push(`${hexes[i]} ${midPct}%`);
+                            }
+                            currentPercent = endPct;
+                        });
+                        previewBar.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
+                    }
+
+                    item.querySelector('.stock-preview-container').addEventListener('click', () => {
+                        if (stock.mainMode) {
+                            this.dom.mainMode.value = stock.mainMode;
+                        }
+                        if (stock.colorCount) {
+                            this.dom.colorCountSlider.value = stock.colorCount;
+                            this.dom.colorCountValue.textContent = this.getColorCountText(stock.colorCount);
+                        }
+                        this.updateSubModes();
+                        if (stock.subMode) {
+                            this.dom.subMode.value = stock.subMode;
+                        }
+                        if (stock.isSplitMode !== undefined) {
+                            this.setDisplayMode(stock.isSplitMode);
+                        }
+                        if (stock.globalHue !== undefined) {
+                            this.dom.globalHueSlider.value = stock.globalHue;
+                            this.dom.globalHueInput.value = stock.globalHue;
+                        }
+                        if (stock.globalSat !== undefined) {
+                            this.dom.globalSatSlider.value = stock.globalSat;
+                            this.dom.globalSatInput.value = stock.globalSat;
+                        }
+                        if (stock.globalLit !== undefined) {
+                            this.dom.globalLitSlider.value = stock.globalLit;
+                            this.dom.globalLitInput.value = stock.globalLit;
+                        }
+                        if (stock.hueStep !== undefined) {
+                            this.dom.hueStepSlider.value = stock.hueStep;
+                            this.dom.hueStepInput.value = stock.hueStep;
+                        }
+                        if (stock.satStep !== undefined) {
+                            this.dom.satStepSlider.value = stock.satStep;
+                            this.dom.satStepInput.value = stock.satStep;
+                        }
+                        if (stock.litStep !== undefined) {
+                            this.dom.litStepSlider.value = stock.litStep;
+                            this.dom.litStepInput.value = stock.litStep;
+                        }
+
+                        this.currentColors = JSON.parse(JSON.stringify(stock.colors));
+                        this.renderPanes();
+                        this.pushHistory(this.currentColors);
+                    });
+
+                    item.querySelector('.stock-name').addEventListener('change', (e) => {
+                        this.stocks[index].name = e.target.value;
+                        localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(this.stocks));
+                    });
+
+                    item.querySelector('.overwrite-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.stocks[index] = {
+                            ...this.stocks[index],
+                            mainMode: this.dom.mainMode.value,
+                            subMode: this.dom.subMode.value,
+                            colorCount: this.dom.colorCountSlider.value,
+                            isSplitMode: this.isSplitMode,
+                            globalHue: this.dom.globalHueInput.value,
+                            globalSat: this.dom.globalSatInput.value,
+                            globalLit: this.dom.globalLitInput.value,
+                            hueStep: this.dom.hueStepInput.value,
+                            satStep: this.dom.satStepInput.value,
+                            litStep: this.dom.litStepInput.value,
+                            colors: JSON.parse(JSON.stringify(this.currentColors))
+                        };
+                        localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(this.stocks));
+                        this.renderStocks();
+                    });
+
+                    item.querySelector('.delete-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.stocks.splice(index, 1);
+                        localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(this.stocks));
+                        this.renderStocks();
+                    });
+
+                    this.dom.stockList.appendChild(item);
+                });
+            }
+
+            // CSS Variables コピー
+            copyCss() {
+                const vars = this.currentColors.map((c, i) => `  --color-${i + 1}: ${c.hex};`).join('\n');
+                const cssText = `:root {\n${vars}\n}`;
+                this.copyToClipboard(cssText, 'CSS Variables copied!');
+            }
+
+            // Tailwind Config コピー
+            copyTailwind() {
+                const colorObj = {};
+                this.currentColors.forEach((c, i) => {
+                    colorObj[`color-${i + 1}`] = c.hex;
+                });
+                const tailwindText = `// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: {\n        palette: ${JSON.stringify(colorObj, null, 10).replace(/\n\s*/g, ' ')}\n      }\n    }\n  }\n};`;
+                this.copyToClipboard(tailwindText, 'Tailwind config copied!');
+            }
+
+            // JSON エクスポート
+            exportJson() {
+                const data = {
+                    generator: "Color Palette Generator Pro",
+                    date: new Date().toISOString(),
+                    colors: this.currentColors
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                this.downloadBlob(blob, `palette_${Date.now()}.json`);
+            }
+
+            // CSV エクスポート
+            exportCsv() {
+                let csvContent = "Index,HEX,RGB,OKLCH_L,OKLCH_C,OKLCH_H\n";
+                this.currentColors.forEach((c, i) => {
+                    const oklch = c.oklch || { l: 0, c: 0, h: 0 };
+                    csvContent += `${i + 1},"${c.hex}","rgb(${c.rgb.join(',')})",${oklch.l.toFixed(3)},${oklch.c.toFixed(3)},${oklch.h.toFixed(1)}\n`;
+                });
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                this.downloadBlob(blob, `palette_${Date.now()}.csv`);
+            }
+
+            downloadBlob(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            async copyToClipboard(text, message = 'Copied to clipboard!') {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    this.dom.toastMsg.textContent = message;
+                    this.dom.toast.classList.remove('toast-animate');
+                    void this.dom.toast.offsetWidth;
+                    this.dom.toast.classList.add('toast-animate');
+                } catch (err) {
+                    console.error('Copy failed', err);
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.app = new App();
+        });
+    </script>
+</body>
+</html>
