@@ -26,6 +26,50 @@
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border-right: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: visible !important;
+        }
+        /* 縦長グラデーションプレビュー用スタイル（PC全画面では非表示、狭い画面やドロワー表示時はサイドバーの右縁外側に隙間なくぴったり追従・角丸なし） */
+        #sidebar-gradient-preview {
+            display: block;
+            transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: absolute;
+            right: -28px;
+            top: 0;
+            width: 28px;
+            height: 100%;
+            border-radius: 0;
+            z-index: 60;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.5);
+            border-right: 1px solid rgba(255, 255, 255, 0.25);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            pointer-events: none;
+        }
+        @media (min-width: 1201px) {
+            #sidebar-gradient-preview {
+                display: none !important;
+            }
+        }
+        /* サイドバーが閉じられている（画面外にある）ときはプレビューも非表示にする */
+        #settings-panel.-translate-x-full #sidebar-gradient-preview {
+            display: none !important;
+        }
+        @media (max-width: 1200px) {
+            #settings-panel {
+                position: fixed !important;
+                left: 0;
+                top: 0;
+                height: 100%;
+                z-index: 50;
+            }
+            /* 画面が狭いときはハンバーガーボタンを表示する */
+            #open-drawer-btn {
+                display: flex !important;
+            }
+            /* ハンバーガーボタンが表示されているときは「幅をリセット」ボタンを右にずらす */
+            #reset-widths-container {
+                left: 5rem !important; /* ハンバーガーボタンと重ならないように位置を調整 */
+            }
         }
 
         @keyframes slideUpFade {
@@ -98,7 +142,8 @@
             transition: all 0.2s;
             z-index: 20;
         }
-        /* 通常時は元の最大サイズを完全維持し、狭いときだけ1行のまま縮小するスタイル */
+
+        /* 1行を維持したまま画面幅に応じて限界まで縮小するアクションボタン群のスタイル */
         .responsive-action-buttons {
             font-size: clamp(0.7rem, 1.5vw + 0.2rem, 1.125rem); /* 最大値 1.125rem (text-lg相当) をキープ */
             flex-wrap: nowrap;
@@ -123,7 +168,10 @@
     <div id="drawer-overlay" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm transition-opacity"></div>
 
     <!-- 編集画面 (サイドバー / モバイルドロワー) -->
-    <aside id="settings-panel" class="relative inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col p-6 text-white shadow-2xl z-50 transform translate-x-0 transition-transform duration-300 ease-in-out overflow-hidden">
+    <aside id="settings-panel" class="fixed md:relative inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col p-6 text-white shadow-2xl z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out overflow-hidden relative">
+        <!-- リアルタイム縦長グラデーションプレビュー（狭い画面時にサイドバー右縁に追従） -->
+        <div id="sidebar-gradient-preview"></div>
+
         <div class="flex justify-between items-center mb-4 flex-shrink-0">
             <h2 class="text-xl font-bold tracking-wider drop-shadow flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full inline-block" style="background-color: #3B82F6;"></span>
@@ -132,7 +180,7 @@
             <div class="flex items-center gap-2">
                 <button id="lang-toggle-btn" class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-sm transition-colors cursor-pointer" title="言語切替 / Language">🇯🇵</button>
                 <button id="help-btn" class="flex w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 items-center justify-center text-xs font-bold transition-colors cursor-pointer" title="ショートカット一覧">?</button>
-                <button id="close-drawer-btn" class="hidden w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 items-center justify-center text-xs font-bold transition-colors cursor-pointer">✕</button>
+                <button id="close-drawer-btn" class="flex md:hidden w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 items-center justify-center text-xs font-bold transition-colors cursor-pointer">✕</button>
             </div>
         </div>
         
@@ -260,7 +308,7 @@
         </div>
 
         <!-- アクションボタン群 (機能拡張) -->
-        <div class="mt-4 space-y-2 pt-4 border-t border-white/10 flex-shrink-0">
+        <div class="mt-2 space-y-2 pt-3 border-t border-white/10 flex-shrink-0">
             <div class="grid grid-cols-2 gap-2">
                 <button id="copy-current-css-btn" style="background-color: rgba(59, 130, 246, 0.8); border-color: rgba(59, 130, 246, 0.3);" class="py-2.5 hover:opacity-95 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
                     CSSコピー
@@ -282,15 +330,15 @@
 
     <!-- メイン表示エリア -->
     <main id="main-container" class="flex-1 h-full relative flex flex-col min-w-0">
-        <!-- モバイル用 メニュー開くボタン (デスクトップでは非表示) -->
+        <!-- メニュー開くボタン (PC全画面では非表示、画面幅が狭い場合やスマホ時に表示) -->
         <button id="open-drawer-btn" class="hidden absolute top-6 left-6 z-30 p-3 bg-black/40 backdrop-blur-md text-white rounded-full border border-white/20 shadow-lg hover:bg-white/20 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
         </button>
 
-        <!-- 左上：境界線リセットボタン (モバイル時はハンバーガーボタンと重ならないように左位置を調整) -->
-        <div class="absolute top-6 left-8 flex items-center z-30">
+        <!-- 左上：境界線リセットボタン (ハンバーガーボタンと重ならないようにIDで位置制御) -->
+        <div id="reset-widths-container" class="absolute top-6 left-8 flex items-center z-30 transition-all duration-300">
             <button id="reset-widths-btn" class="px-3 md:px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white font-bold text-[11px] md:text-xs tracking-wider rounded-full shadow-lg border border-white/20 transition-all hover:scale-105 cursor-pointer flex items-center gap-1.5 uppercase" title="色領域の比率を均等にリセット">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
@@ -1086,12 +1134,19 @@
             }
 
             toggleDrawer(open) {
+                const preview = document.getElementById('sidebar-gradient-preview');
                 if (open) {
                     this.dom.settingsPanel.classList.remove('-translate-x-full');
                     this.dom.drawerOverlay.classList.remove('hidden');
+                    if (window.innerWidth <= 1200 && preview) {
+                        preview.style.display = 'block';
+                    }
                 } else {
                     this.dom.settingsPanel.classList.add('-translate-x-full');
                     this.dom.drawerOverlay.classList.add('hidden');
+                    if (preview) {
+                        preview.style.display = 'none';
+                    }
                 }
             }
 
@@ -1715,7 +1770,7 @@
                         const startPct = currentPercent;
                         const endPct = currentPercent + widthPercent;
 
-                        if (isSplit) {
+                        if (this.isSplitMode) {
                             stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
                         } else {
                             const midPct = startPct + ((endPct - startPct) / 2);
@@ -1733,6 +1788,39 @@
                     });
 
                     this.dom.mainContainer.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
+                }
+
+                // サイドバー内の縦長プレビュー（上から下へ、各色領域のサイズ変化・比率および分割モードを完全に反映）
+                const sidebarPreview = document.getElementById('sidebar-gradient-preview');
+                if (sidebarPreview && hexes.length > 0) {
+                    const ratios = this.currentColors.map(c => c.widthRatio !== undefined ? c.widthRatio : 1);
+                    const totalRatio = ratios.reduce((sum, r) => sum + r, 0) || 1;
+                    let currentPercent = 0;
+                    const stops = [];
+
+                    ratios.forEach((ratio, i) => {
+                        const percent = (ratio / totalRatio) * 100;
+                        const startPct = currentPercent;
+                        const endPct = currentPercent + percent;
+
+                        if (this.isSplitMode) {
+                            stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
+                        } else {
+                            const midPct = startPct + ((endPct - startPct) / 2);
+                            if (i === 0) {
+                                stops.push(`${hexes[i]} 0%`);
+                                stops.push(`${hexes[i]} ${midPct}%`);
+                            } else if (i === hexes.length - 1) {
+                                stops.push(`${hexes[i]} ${midPct}%`);
+                                stops.push(`${hexes[i]} 100%`);
+                            } else {
+                                stops.push(`${hexes[i]} ${midPct}%`);
+                            }
+                        }
+                        currentPercent = endPct;
+                    });
+
+                    sidebarPreview.style.background = `linear-gradient(to bottom, ${stops.join(', ')})`;
                 }
             }
 
