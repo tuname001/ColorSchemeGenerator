@@ -1114,8 +1114,8 @@
                     });
                 }
 
-                this.dom.modeGradient.addEventListener('click', () => this.setDisplayMode(false));
-                this.dom.modeSplit.addEventListener('click', () => this.setDisplayMode(true));
+                this.dom.modeGradient.addEventListener('click', () => this.setDisplayMode(false, true));
+                this.dom.modeSplit.addEventListener('click', () => this.setDisplayMode(true, true));
 
                 this.dom.saveStockBtn.addEventListener('click', () => this.saveStock());
                 
@@ -1212,7 +1212,7 @@
                 }
             }
 
-            setDisplayMode(split) {
+            setDisplayMode(split, recordHistory = true) {
                 this.isSplitMode = split;
                 if (split) {
                     this.dom.modeSplit.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-white shadow transition-all cursor-pointer';
@@ -1226,6 +1226,9 @@
                     this.dom.modeSplit.style.backgroundColor = '';
                 }
                 this.updateBackground();
+                if (recordHistory) {
+                    this.pushHistory(this.currentColors);
+                }
                 this.saveState();
             }
 
@@ -1929,7 +1932,7 @@
                         this.dom.subMode.value = state.subMode;
                     }
                     if (state.isSplitMode !== undefined) {
-                        this.setDisplayMode(state.isSplitMode);
+                        this.setDisplayMode(state.isSplitMode, false);
                     }
                     if (state.globalHue !== undefined) {
                         this.dom.globalHueSlider.value = state.globalHue;
@@ -2026,7 +2029,7 @@
                 }
                 this.updateSubModes();
                 if (state.subMode) this.dom.subMode.value = state.subMode;
-                if (state.isSplitMode !== undefined) this.setDisplayMode(state.isSplitMode);
+                if (state.isSplitMode !== undefined) this.setDisplayMode(state.isSplitMode, false);
                 if (state.globalHue !== undefined) {
                     this.dom.globalHueSlider.value = state.globalHue;
                     this.dom.globalHueInput.value = state.globalHue;
