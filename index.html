@@ -62,7 +62,7 @@
             position: relative;
             user-select: none;
         }
-        @media (max-width: 768px) and (orientation: portrait) {
+        @media (max-width: 768px) {
             .color-pane {
                 padding-bottom: 13rem;
             }
@@ -103,10 +103,10 @@
 <body class="w-full h-screen relative bg-gray-900 flex overflow-hidden">
 
     <!-- モバイル用 オーバーレイ背景 -->
-    <div id="drawer-overlay" class="fixed inset-0 bg-black/60 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
+    <div id="drawer-overlay" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm transition-opacity"></div>
 
     <!-- 編集画面 (サイドバー / モバイルドロワー) -->
-    <aside id="settings-panel" class="fixed md:relative inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col p-6 text-white shadow-2xl z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out overflow-hidden">
+    <aside id="settings-panel" class="relative inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col p-6 text-white shadow-2xl z-50 transform translate-x-0 transition-transform duration-300 ease-in-out overflow-hidden">
         <div class="flex justify-between items-center mb-4 flex-shrink-0">
             <h2 class="text-xl font-bold tracking-wider drop-shadow flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full inline-block" style="background-color: #3B82F6;"></span>
@@ -114,8 +114,8 @@
             </h2>
             <div class="flex items-center gap-2">
                 <button id="lang-toggle-btn" class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-sm transition-colors cursor-pointer" title="言語切替 / Language">🇯🇵</button>
-                <button id="help-btn" class="hidden md:flex w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 items-center justify-center text-xs font-bold transition-colors cursor-pointer" title="ショートカット一覧">?</button>
-                <button id="close-drawer-btn" class="md:hidden w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer">✕</button>
+                <button id="help-btn" class="flex w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 items-center justify-center text-xs font-bold transition-colors cursor-pointer" title="ショートカット一覧">?</button>
+                <button id="close-drawer-btn" class="hidden w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 items-center justify-center text-xs font-bold transition-colors cursor-pointer">✕</button>
             </div>
         </div>
         
@@ -266,14 +266,14 @@
     <!-- メイン表示エリア -->
     <main id="main-container" class="flex-1 h-full relative flex flex-col min-w-0">
         <!-- モバイル用 メニュー開くボタン (デスクトップでは非表示) -->
-        <button id="open-drawer-btn" class="md:hidden absolute top-6 left-6 z-30 p-3 bg-black/40 backdrop-blur-md text-white rounded-full border border-white/20 shadow-lg hover:bg-white/20 transition-colors">
+        <button id="open-drawer-btn" class="hidden absolute top-6 left-6 z-30 p-3 bg-black/40 backdrop-blur-md text-white rounded-full border border-white/20 shadow-lg hover:bg-white/20 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
         </button>
 
         <!-- 左上：境界線リセットボタン (モバイル時はハンバーガーボタンと重ならないように左位置を調整) -->
-        <div class="absolute top-6 left-20 md:left-8 flex items-center z-30">
+        <div class="absolute top-6 left-8 flex items-center z-30">
             <button id="reset-widths-btn" class="px-3 md:px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white font-bold text-[11px] md:text-xs tracking-wider rounded-full shadow-lg border border-white/20 transition-all hover:scale-105 cursor-pointer flex items-center gap-1.5 uppercase" title="色領域の比率を均等にリセット">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
