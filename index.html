@@ -1738,7 +1738,7 @@
                 }
 
                 if (hexValue && !hexValue.startsWith('#')) hexValue = '#' + hexValue;
-                const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(hexValue);
+                const isValidHex = /^#[0-9A-F]{6}$/i.test(hexValue);
                 
                 const oldObj = this.currentColors[index] || {};
                 if (!oldObj.widthRatio) oldObj.widthRatio = 1;
@@ -1982,36 +1982,84 @@
                 this.saveState();
             }
 
-            pushHistory(colors) {
+            pushHistory(colors = null) {
+                const currentState = {
+                    colors: JSON.parse(JSON.stringify(this.currentColors)),
+                    mainMode: this.dom.mainMode.value,
+                    subMode: this.dom.subMode.value,
+                    colorCount: this.dom.colorCountSlider.value,
+                    isSplitMode: this.isSplitMode,
+                    globalHue: this.dom.globalHueInput.value,
+                    globalSat: this.dom.globalSatInput.value,
+                    globalLit: this.dom.globalLitInput.value,
+                    hueStep: this.dom.hueStepInput.value,
+                    satStep: this.dom.satStepInput.value,
+                    litStep: this.dom.litStepInput.value
+                };
                 if (this.historyIndex >= 0 && this.history[this.historyIndex]) {
-                    if (JSON.stringify(this.history[this.historyIndex]) === JSON.stringify(colors)) return;
+                    if (JSON.stringify(this.history[this.historyIndex]) === JSON.stringify(currentState)) return;
                 }
                 this.history = this.history.slice(0, this.historyIndex + 1);
-                this.history.push(JSON.parse(JSON.stringify(colors)));
+                this.history.push(currentState);
                 this.historyIndex = this.history.length - 1;
                 this.updateHistoryButtons();
                 this.saveState();
             }
 
+            applyStateSnapshot(state) {
+                this.currentColors = JSON.parse(JSON.stringify(state.colors));
+                if (state.mainMode) this.dom.mainMode.value = state.mainMode;
+                if (state.colorCount) {
+                    this.dom.colorCountSlider.value = state.colorCount;
+                    this.dom.colorCountValue.textContent = this.getColorCountText(state.colorCount);
+                }
+                this.updateSubModes();
+                if (state.subMode) this.dom.subMode.value = state.subMode;
+                if (state.isSplitMode !== undefined) this.setDisplayMode(state.isSplitMode);
+                if (state.globalHue !== undefined) {
+                    this.dom.globalHueSlider.value = state.globalHue;
+                    this.dom.globalHueInput.value = state.globalHue;
+                }
+                if (state.globalSat !== undefined) {
+                    this.dom.globalSatSlider.value = state.globalSat;
+                    this.dom.globalSatInput.value = state.globalSat;
+                }
+                if (state.globalLit !== undefined) {
+                    this.dom.globalLitSlider.value = state.globalLit;
+                    this.dom.globalLitInput.value = state.globalLit;
+                }
+                if (state.hueStep !== undefined) {
+                    this.dom.hueStepSlider.value = state.hueStep;
+                    this.dom.hueStepInput.value = state.hueStep;
+                }
+                if (state.satStep !== undefined) {
+                    this.dom.satStepSlider.value = state.satStep;
+                    this.dom.satStepInput.value = state.satStep;
+                }
+                if (state.litStep !== undefined) {
+                    this.dom.litStepSlider.value = state.litStep;
+                    this.dom.litStepInput.value = state.litStep;
+                }
+                this.renderPanes();
+            }
+
             undo() {
                 if (this.historyIndex > 0) {
                     this.historyIndex--;
-                    this.currentColors = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
-                    this.dom.colorCountSlider.value = this.currentColors.length;
-                    this.dom.colorCountValue.textContent = this.getColorCountText(this.currentColors.length);
-                    this.renderPanes();
+                    const state = this.history[this.historyIndex];
+                    this.applyStateSnapshot(state);
                     this.updateHistoryButtons();
+                    this.saveState();
                 }
             }
 
             redo() {
                 if (this.historyIndex < this.history.length - 1) {
                     this.historyIndex++;
-                    this.currentColors = JSON.parse(JSON.stringify(this.history[this.historyIndex]));
-                    this.dom.colorCountSlider.value = this.currentColors.length;
-                    this.dom.colorCountValue.textContent = this.getColorCountText(this.currentColors.length);
-                    this.renderPanes();
+                    const state = this.history[this.historyIndex];
+                    this.applyStateSnapshot(state);
                     this.updateHistoryButtons();
+                    this.saveState();
                 }
             }
 
