@@ -27,20 +27,21 @@
             -webkit-backdrop-filter: blur(16px);
             border-right: 1px solid rgba(255, 255, 255, 0.1);
             overflow: visible !important;
+            margin-left: 0; /* PC全画面時はマージンなし */
         }
-        /* 縦長グラデーションプレビュー用スタイル（PC全画面では非表示、狭い画面やドロワー表示時はサイドバーの右縁外側に隙間なくぴったり追従・角丸なし） */
+        /* 縦長グラデーションプレビュー用スタイル（編集画面の左端に隙間なくぴったり沿わせて配置・角丸なし） */
         #sidebar-gradient-preview {
             display: block;
             transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             position: absolute;
-            right: -28px;
+            left: -28px;
             top: 0;
             width: 28px;
             height: 100%;
             border-radius: 0;
             z-index: 60;
-            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.5);
-            border-right: 1px solid rgba(255, 255, 255, 0.25);
+            box-shadow: -4px 0 15px rgba(0, 0, 0, 0.5);
+            border-left: 1px solid rgba(255, 255, 255, 0.25);
             border-top: 1px solid rgba(255, 255, 255, 0.15);
             border-bottom: 1px solid rgba(255, 255, 255, 0.15);
             pointer-events: none;
@@ -48,6 +49,9 @@
         @media (min-width: 1201px) {
             #sidebar-gradient-preview {
                 display: none !important;
+            }
+            #settings-panel {
+                margin-left: 0 !important;
             }
         }
         /* サイドバーが閉じられている（画面外にある）ときはプレビューも非表示にする */
@@ -61,6 +65,11 @@
                 top: 0;
                 height: 100%;
                 z-index: 50;
+                margin-left: 0; /* 閉じているときはマージンなし */
+            }
+            /* モバイルドロワーが開いているときのみ、プレビュー分のマージンを適用 */
+            #settings-panel:not(.-translate-x-full) {
+                margin-left: 28px !important;
             }
             /* 画面が狭いときはハンバーガーボタンを表示する */
             #open-drawer-btn {
