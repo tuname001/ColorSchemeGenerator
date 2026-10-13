@@ -857,12 +857,20 @@
                 } 
                 else if (mainMode === 'image') {
                     const imgDef = CONFIG.IMAGE_WORDS[subMode] || CONFIG.IMAGE_WORDS.casual;
-                    const tone1 = CONFIG.PCCS_TONES[imgDef.toneKeys[0]] || CONFIG.PCCS_TONES.v;
-                    const tone2 = CONFIG.PCCS_TONES[imgDef.toneKeys[1]] || CONFIG.PCCS_TONES.lt;
+                    const minH = imgDef.hueRange[0];
+                    const maxH = imgDef.hueRange[1];
+                    const isWrap = minH > maxH;
+                    const span = isWrap ? (360 - minH) + maxH : maxH - minH;
 
                     for (let i = 0; i < count; i++) {
-                        const currentTone = (i % 2 === 0) ? tone1 : tone2;
-                        let h = ColorMath.random(imgDef.hueRange[0], imgDef.hueRange[1]);
+                        // toneKeys からランダムにトーンを選択し、色数が多くても単調にならないようバラエティを持たせる
+                        const toneKey = imgDef.toneKeys[Math.floor(Math.random() * imgDef.toneKeys.length)];
+                        const currentTone = CONFIG.PCCS_TONES[toneKey] || CONFIG.PCCS_TONES.v;
+
+                        // 指定された色相範囲（0度を跨ぐ範囲含む）の中で、毎回完全にランダムな色相・明度・彩度を生成
+                        let randOffset = ColorMath.random(0, span);
+                        let h = isWrap ? (minH + randOffset) % 360 : minH + randOffset;
+
                         let l = ColorMath.random(currentTone.L[0], currentTone.L[1]);
                         let c = ColorMath.random(currentTone.C[0], currentTone.C[1]);
                         okList.push({ l, c, h });
