@@ -1323,7 +1323,7 @@
                     
                     let h = (orig.h + globalHue) % 360;
                     if (h < 0) h += 360;
-                    let c_val = Math.max(0.0, Math.min(1.0, orig.c + globalSat));
+                    let c_val = Math.max(0.0, Math.min(1.0, orig.c * (1.0 + globalSat)));
                     let l = Math.max(0.0, Math.min(1.0, orig.l + globalLit));
 
                     const oklch = { l, c: c_val, h };
@@ -1346,9 +1346,9 @@
                 const count = parseInt(this.dom.colorCountSlider.value);
 
                 const settings = {
-                    hueStep: parseFloat(this.dom.hueStepInput.value),
-                    satStep: parseFloat(this.dom.satStepInput.value),
-                    litStep: parseFloat(this.dom.litStepInput.value)
+                    hueStep: parseFloat(this.dom.hueStepInput.value) || 0,
+                    satStep: parseFloat(this.dom.satStepInput.value) || 0,
+                    litStep: parseFloat(this.dom.litStepInput.value) || 0
                 };
 
                 let baseState = null;
@@ -1371,7 +1371,7 @@
                         const orig = c.originalOklch;
                         let h = (orig.h + globalHue) % 360;
                         if (h < 0) h += 360;
-                        let c_val = Math.max(0.0, Math.min(1.0, orig.c + globalSat));
+                        let c_val = Math.max(0.0, Math.min(1.0, orig.c * (1.0 + globalSat)));
                         let l = Math.max(0.0, Math.min(1.0, orig.l + globalLit));
                         const oklch = { l, c: c_val, h };
                         const rgb = ColorMath.oklchToRgb(oklch.l, oklch.c, oklch.h);
