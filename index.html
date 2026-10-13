@@ -1381,15 +1381,6 @@
                     });
                 }
 
-                if (!keepBase) {
-                    if (this.dom.globalHueSlider) this.dom.globalHueSlider.value = 0;
-                    if (this.dom.globalHueInput) this.dom.globalHueInput.value = 0;
-                    if (this.dom.globalSatSlider) this.dom.globalSatSlider.value = 0;
-                    if (this.dom.globalSatInput) this.dom.globalSatInput.value = 0;
-                    if (this.dom.globalLitSlider) this.dom.globalLitSlider.value = 0;
-                    if (this.dom.globalLitInput) this.dom.globalLitInput.value = 0;
-                }
-
                 // 修正: 既存の色配列（this.currentColors）の中でロックされている位置の色は、色数や生成処理に関わらず絶対に上書きされず保持されるようにする
                 newColors = newColors.map((c, i) => {
                     const old = this.currentColors[i];
