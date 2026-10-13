@@ -451,18 +451,35 @@
         <span id="toast-msg">Copied to clipboard!</span>
     </div>
 
-    <!-- ショートカット確認用モーダル -->
+    <!-- ヘルプ＆ショートカット確認用モーダル -->
     <div id="help-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-gray-800 text-white p-6 rounded-2xl max-w-xs w-full border border-white/20 shadow-2xl text-center space-y-4">
-            <h3 id="txt-sc-title" class="text-base font-bold border-b border-white/10 pb-2">ショートカットキー</h3>
-            <ul class="text-xs space-y-2 text-left bg-black/40 p-4 rounded-xl font-mono">
-                <li class="flex justify-between"><span id="txt-sc-key-space" class="text-gray-400">Space</span> <span id="txt-sc-val-space">生成</span></li>
-                <li class="flex justify-between"><span id="txt-sc-key-r" class="text-gray-400">R</span> <span id="txt-sc-val-r">ランダム</span></li>
-                <li class="flex justify-between"><span id="txt-sc-key-z" class="text-gray-400">Ctrl + Z</span> <span id="txt-sc-val-z">一つ前に戻る</span></li>
-                <li class="flex justify-between"><span id="txt-sc-key-y" class="text-gray-400">Ctrl + Y</span> <span id="txt-sc-val-y">一つ後に進む</span></li>
-                <li class="flex justify-between"><span id="txt-sc-key-s" class="text-gray-400">Ctrl + S</span> <span id="txt-sc-val-s">保存</span></li>
-                <li class="flex justify-between"><span id="txt-sc-key-swipe" class="text-gray-400">スワイプ (左右)</span> <span id="txt-sc-val-swipe">配色切り替え</span></li>
-            </ul>
+        <div class="bg-gray-800 text-white p-6 rounded-2xl w-fit max-w-[95vw] border border-white/20 shadow-2xl text-center space-y-4 max-h-[90vh] overflow-y-auto">
+            <h3 id="txt-help-title" class="text-base font-bold border-b border-white/10 pb-2">ヘルプ & 仕様ガイド</h3>
+            
+            <!-- 仕様解説セクション -->
+            <div class="text-left space-y-2 bg-black/40 p-4 rounded-xl text-xs">
+                <h4 id="txt-features-title" class="font-bold text-blue-400 mb-2">主な機能の仕様</h4>
+                <div class="space-y-1.5">
+                    <div class="flex items-center gap-6 whitespace-nowrap"><strong id="txt-gen-label" class="text-white w-20 flex-shrink-0">生成</strong> <span id="txt-gen-desc" class="text-gray-300">現在の設定・モードに基づき、新しい配色を新規作成します。</span></div>
+                    <div class="flex items-center gap-6 whitespace-nowrap"><strong id="txt-rand-label" class="text-white w-20 flex-shrink-0">ランダム</strong> <span id="txt-rand-desc" class="text-gray-300">モードやパラメータをランダムに変更して新しい配色を作ります。</span></div>
+                    <div class="flex items-center gap-6 whitespace-nowrap"><strong id="txt-update-label" class="text-white w-20 flex-shrink-0">更新</strong> <span id="txt-update-desc" class="text-gray-300">左端の色をベースとして維持したまま、現在の設定で配色を再生成します。</span></div>
+                    <div class="flex items-center gap-6 whitespace-nowrap"><strong id="txt-save-label" class="text-white w-20 flex-shrink-0">保存</strong> <span id="txt-save-desc" class="text-gray-300">現在のパレットをサイドバーの「ストック一覧」に保存します（最大20個）。</span></div>
+                </div>
+            </div>
+
+            <!-- ショートカットキー一覧 -->
+            <div class="space-y-2">
+                <h4 id="txt-sc-title" class="font-bold text-blue-400 text-xs text-left">ショートカットキー一覧</h4>
+                <ul class="text-xs space-y-1.5 text-left bg-black/40 p-4 rounded-xl font-mono">
+                    <li class="flex justify-between gap-8 whitespace-nowrap"><span id="txt-sc-key-space" class="text-gray-400">Space</span> <span id="txt-sc-val-space">生成</span></li>
+                    <li class="flex justify-between gap-8 whitespace-nowrap"><span id="txt-sc-key-r" class="text-gray-400">R</span> <span id="txt-sc-val-r">ランダム</span></li>
+                    <li class="flex justify-between gap-8 whitespace-nowrap"><span id="txt-sc-key-z" class="text-gray-400">Ctrl + Z</span> <span id="txt-sc-val-z">一つ前に戻る</span></li>
+                    <li class="flex justify-between gap-8 whitespace-nowrap"><span id="txt-sc-key-y" class="text-gray-400">Ctrl + Y</span> <span id="txt-sc-val-y">一つ後に進む</span></li>
+                    <li class="flex justify-between gap-8 whitespace-nowrap"><span id="txt-sc-key-s" class="text-gray-400">Ctrl + S</span> <span id="txt-sc-val-s">保存</span></li>
+                    <li class="flex justify-between gap-8 whitespace-nowrap"><span id="txt-sc-key-swipe" class="text-gray-400">スワイプ (左右)</span> <span id="txt-sc-val-swipe">配色切り替え</span></li>
+                </ul>
+            </div>
+
             <p id="txt-sc-close" class="text-[10px] text-gray-400">（画面クリックで閉じます）</p>
         </div>
     </div>
@@ -1003,8 +1020,18 @@
                         hueStepLabel: '色相ステップ',
                         satStepLabel: '彩度ステップ',
                         litStepLabel: '明度ステップ',
-                        shortcuts: {
-                            title: 'ショートカットキー',
+                        help: {
+                            title: 'ヘルプ & 仕様ガイド',
+                            featuresTitle: '主な機能の仕様',
+                            genLabel: '生成',
+                            genDesc: '現在の設定・モードに基づき、新しい配色を新規作成します。',
+                            randLabel: 'ランダム',
+                            randDesc: 'モードやパラメータをランダムに変更して新しい配色を作ります。',
+                            updateLabel: '更新',
+                            updateDesc: '左端の色をベースとして維持したまま、現在の設定で配色を再生成します。',
+                            saveLabel: '保存',
+                            saveDesc: '現在のパレットをサイドバーの「ストック一覧」に保存します（最大20個）。',
+                            shortcutsTitle: 'ショートカットキー一覧',
                             spaceKey: 'Space',
                             spaceVal: '生成',
                             rKey: 'R',
@@ -1088,8 +1115,18 @@
                         hueStepLabel: 'Hue Step',
                         satStepLabel: 'Chroma Step',
                         litStepLabel: 'Lightness Step',
-                        shortcuts: {
-                            title: 'Keyboard Shortcuts',
+                        help: {
+                            title: 'Help & Guide',
+                            featuresTitle: 'Feature Guide',
+                            genLabel: 'Generate',
+                            genDesc: 'Create a brand new palette based on current settings.',
+                            randLabel: 'Random',
+                            randDesc: 'Generate with randomized modes and parameters.',
+                            updateLabel: 'Update',
+                            updateDesc: 'Regenerate palette while keeping the leftmost base color.',
+                            saveLabel: 'Save',
+                            saveDesc: 'Save current palette to the stock list (Max 20).',
+                            shortcutsTitle: 'Keyboard Shortcuts',
                             spaceKey: 'Space',
                             spaceVal: 'GENERATE',
                             rKey: 'R',
@@ -2286,18 +2323,28 @@
                 document.getElementById('txt-hue-step-label').textContent = t.hueStepLabel;
                 document.getElementById('txt-sat-step-label').textContent = t.satStepLabel;
                 document.getElementById('txt-lit-step-label').textContent = t.litStepLabel;
-                document.getElementById('txt-sc-title').textContent = t.shortcuts.title;
-                document.getElementById('txt-sc-key-space').textContent = t.shortcuts.spaceKey;
-                document.getElementById('txt-sc-val-space').textContent = t.shortcuts.spaceVal;
-                document.getElementById('txt-sc-key-r').textContent = t.shortcuts.rKey;
-                document.getElementById('txt-sc-val-r').textContent = t.shortcuts.rVal;
-                document.getElementById('txt-sc-val-z').textContent = t.shortcuts.zVal;
-                document.getElementById('txt-sc-val-y').textContent = t.shortcuts.yVal;
-                document.getElementById('txt-sc-key-s').textContent = t.shortcuts.sKey;
-                document.getElementById('txt-sc-val-s').textContent = t.shortcuts.sVal;
-                document.getElementById('txt-sc-key-swipe').textContent = t.shortcuts.swipeKey;
-                document.getElementById('txt-sc-val-swipe').textContent = t.shortcuts.swipeVal;
-                document.getElementById('txt-sc-close').textContent = t.shortcuts.close;
+                document.getElementById('txt-help-title').textContent = t.help.title;
+                document.getElementById('txt-features-title').textContent = t.help.featuresTitle;
+                document.getElementById('txt-gen-label').textContent = t.help.genLabel;
+                document.getElementById('txt-gen-desc').textContent = t.help.genDesc;
+                document.getElementById('txt-rand-label').textContent = t.help.randLabel;
+                document.getElementById('txt-rand-desc').textContent = t.help.randDesc;
+                document.getElementById('txt-update-label').textContent = t.help.updateLabel;
+                document.getElementById('txt-update-desc').textContent = t.help.updateDesc;
+                document.getElementById('txt-save-label').textContent = t.help.saveLabel;
+                document.getElementById('txt-save-desc').textContent = t.help.saveDesc;
+                document.getElementById('txt-sc-title').textContent = t.help.shortcutsTitle;
+                document.getElementById('txt-sc-key-space').textContent = t.help.spaceKey;
+                document.getElementById('txt-sc-val-space').textContent = t.help.spaceVal;
+                document.getElementById('txt-sc-key-r').textContent = t.help.rKey;
+                document.getElementById('txt-sc-val-r').textContent = t.help.rVal;
+                document.getElementById('txt-sc-val-z').textContent = t.help.zVal;
+                document.getElementById('txt-sc-val-y').textContent = t.help.yVal;
+                document.getElementById('txt-sc-key-s').textContent = t.help.sKey;
+                document.getElementById('txt-sc-val-s').textContent = t.help.sVal;
+                document.getElementById('txt-sc-key-swipe').textContent = t.help.swipeKey;
+                document.getElementById('txt-sc-val-swipe').textContent = t.help.swipeVal;
+                document.getElementById('txt-sc-close').textContent = t.help.close;
                 document.getElementById('mode-gradient').textContent = t.gradient;
                 document.getElementById('mode-split').textContent = t.split;
 
