@@ -497,7 +497,18 @@
                 warm_natural:  { toneKeys: ['sf', 'lt'],     hueRange: [30, 90] },
                 fresh_natural: { toneKeys: ['lt', 'b'],      hueRange: [90, 160] },
                 elegant:       { toneKeys: ['p', 'sf'],      hueRange: [280, 340] },
-                romantic:      { toneKeys: ['p', 'lt'],      hueRange: [320, 360] }
+                romantic:      { toneKeys: ['p', 'lt'],      hueRange: [320, 360] },
+                natural:       { toneKeys: ['sf', 'lt'],     hueRange: [70, 140] },
+                gorgeous:      { toneKeys: ['v', 'dp'],      hueRange: [300, 30] },
+                feminine:      { toneKeys: ['p', 'sf'],      hueRange: [310, 350] },
+                dandy:         { toneKeys: ['dk', 'g'],      hueRange: [180, 260] },
+                ethnic:        { toneKeys: ['s', 'dp'],      hueRange: [15, 55] },
+                retro:         { toneKeys: ['d', 'g'],       hueRange: [20, 120] },
+                pop:           { toneKeys: ['v', 'b'],       hueRange: [0, 360] },
+                minimal:       { toneKeys: ['p', 'g'],       hueRange: [190, 240] },
+                cyber:         { toneKeys: ['v'],            hueRange: [160, 320] },
+                japanese:      { toneKeys: ['dp', 'dk', 'g'], hueRange: [0, 120] },
+                pastel:        { toneKeys: ['p', 'lt'],      hueRange: [0, 360] }
             },
 
             SUB_MODES: {
@@ -514,8 +525,11 @@
                     { value: 'tonal', label: 'トーナル配色 (ダルトーン系)' },
                     { value: 'accent_color', label: 'アクセントカラー (対照色強調)' },
                     { value: 'dyad', label: 'ダイアード / 2色補色 (2色)', targetCount: 2 },
+                    { value: 'bicolor', label: 'ビコロール配色 (2色)', targetCount: 2 },
                     { value: 'triad', label: 'トライアド / 3等分 (3色)', targetCount: 3 },
                     { value: 'split_complementary', label: 'スプリットコンプリメンタリー (3色)', targetCount: 3 },
+                    { value: 'tricolor', label: 'トリコロール配色 (3色)', targetCount: 3 },
+                    { value: 'separation', label: 'セパレーション配色 (3色)', targetCount: 3 },
                     { value: 'tetrad', label: 'テトラード / 4等分 (4色)', targetCount: 4 },
                     { value: 'pentad', label: 'ペンタード / 5等分 (5色)', targetCount: 5 },
                     { value: 'hexad', label: 'ヘクサード / 6等分 (6色)', targetCount: 6 }
@@ -530,7 +544,18 @@
                     { value: 'warm_natural', label: 'ウォームナチュラル' },
                     { value: 'fresh_natural', label: 'フレッシュナチュラル' },
                     { value: 'elegant', label: 'エレガント' },
-                    { value: 'romantic', label: 'ロマンチック' }
+                    { value: 'romantic', label: 'ロマンチック' },
+                    { value: 'natural', label: 'ナチュラル' },
+                    { value: 'gorgeous', label: 'ゴージャス' },
+                    { value: 'feminine', label: 'フェミニン' },
+                    { value: 'dandy', label: 'ダンディ' },
+                    { value: 'ethnic', label: 'エスニック' },
+                    { value: 'retro', label: 'レトロ' },
+                    { value: 'pop', label: 'ポップ' },
+                    { value: 'minimal', label: 'ミニマル' },
+                    { value: 'cyber', label: 'サイバー / フューチャリスティック' },
+                    { value: 'japanese', label: '和風 / ジャパニーズ・モダン' },
+                    { value: 'pastel', label: 'パステル' }
                 ]
             }
         };
@@ -698,13 +723,101 @@
                         for (let i = 0; i < count; i++) {
                             okList.push({ l: baseL + ColorMath.random(-0.08, 0.08), c: baseC + ColorMath.random(-0.04, 0.04), h: baseH + ColorMath.random(-15, 15) });
                         }
+                                        } else if (subMode === 'bicolor') {
+                        // ビコロール配色（2色）：
+                        // 高彩度有彩色 ＋ 無彩色（黒 ＋ 有彩色、または 有彩色 ＋ 白）
+                        let h = baseH;
+                        let isBlack = Math.random() < 0.5;
+                        if (isBlack) {
+                            okList.push({ l: ColorMath.random(0.12, 0.22), c: ColorMath.random(0.00, 0.02), h: 0 }); // 黒
+                            okList.push({ l: ColorMath.random(0.52, 0.65), c: ColorMath.random(0.20, 0.26), h: h });   // 高彩度有彩色
+                        } else {
+                            okList.push({ l: ColorMath.random(0.52, 0.65), c: ColorMath.random(0.20, 0.26), h: h });   // 高彩度有彩色
+                            okList.push({ l: ColorMath.random(0.92, 0.98), c: ColorMath.random(0.00, 0.02), h: 0 }); // 白
+                        }
+                    } else if (subMode === 'tricolor') {
+                        // パターンA: 補色/対照色 ＋ 白または黒（フランス、イタリア国旗等）
+                        // パターンB: 有彩色2色 ＋ 黒または白（ハロウィン、ドイツ国旗等）
+                        const patternType = Math.floor(Math.random() * 2);
+                        if (patternType === 0) {
+                            let h1 = baseH;
+                            let h2 = (baseH + ColorMath.random(150, 210)) % 360; // ほぼ補色〜対照色
+                            let lChoices = [
+                                // [色1(有彩), 白(無彩), 色2(有彩)]
+                                [{ l: ColorMath.random(0.52, 0.62), c: ColorMath.random(0.20, 0.25), h: h1 }, { l: ColorMath.random(0.92, 0.98), c: ColorMath.random(0.00, 0.02), h: 0 }, { l: ColorMath.random(0.48, 0.58), c: ColorMath.random(0.20, 0.25), h: h2 }],
+                                // [黒(無彩), 色1(有彩), 色2(有彩)]
+                                [{ l: ColorMath.random(0.12, 0.22), c: ColorMath.random(0.00, 0.02), h: 0 }, { l: ColorMath.random(0.55, 0.65), c: ColorMath.random(0.21, 0.26), h: h1 }, { l: ColorMath.random(0.50, 0.60), c: ColorMath.random(0.20, 0.24), h: h2 }],
+                            ];
+                            let chosen = lChoices[Math.floor(Math.random() * lChoices.length)];
+                            chosen.forEach(item => okList.push(item));
+                        } else {
+                            let h1 = baseH;
+                            // 色相差を80°〜160°に広げることで、橙(約35°)×紫(約290°＝-105°)などの関係もカバー
+                            let h2 = (baseH + ColorMath.random(80, 160)) % 360; 
+                            let isBlackBase = Math.random() < 0.5;
+                            if (isBlackBase) {
+                                // 黒 ＋ 有彩色2色（ハロウィン：黒・橙・紫など）
+                                okList.push({ l: ColorMath.random(0.12, 0.22), c: ColorMath.random(0.00, 0.02), h: 0 });
+                                okList.push({ l: ColorMath.random(0.55, 0.65), c: ColorMath.random(0.21, 0.26), h: h1 });
+                                okList.push({ l: ColorMath.random(0.50, 0.60), c: ColorMath.random(0.20, 0.24), h: h2 });
+                            } else {
+                                // 白 ＋ 有彩色2色
+                                okList.push({ l: ColorMath.random(0.92, 0.98), c: ColorMath.random(0.00, 0.02), h: 0 });
+                                okList.push({ l: ColorMath.random(0.55, 0.65), c: ColorMath.random(0.21, 0.26), h: h1 });
+                                okList.push({ l: ColorMath.random(0.50, 0.60), c: ColorMath.random(0.20, 0.24), h: h2 });
+                            }
+                        }
+                    } else if (subMode === 'separation') {
+                        // セパレーション配色（3色）：
+                        // パターン1: 強い色同士（対照色相）の間を無彩色や金銀で調和させるセパレーション
+                        // パターン2: コントラストの弱い色や類似色（同系色・淡いトーン等）の間を、引き締め色等でメリハリを出すセパレーション
+                        const patternType = Math.floor(Math.random() * 2);
+                        let color1, color3, separationColor;
+
+                        if (patternType === 0) {
+                            // パターン1: 強い色同士（対照色相）
+                            let h1 = baseH;
+                            let h2 = (baseH + ColorMath.random(150, 210)) % 360;
+                            color1 = { l: ColorMath.random(0.50, 0.62), c: ColorMath.random(0.20, 0.25), h: h1 };
+                            color3 = { l: ColorMath.random(0.48, 0.60), c: ColorMath.random(0.20, 0.25), h: h2 };
+                        } else {
+                            // パターン2: コントラストの弱い色・類似色（同系色や淡いトーンなど）
+                            let h1 = baseH;
+                            let h2 = (baseH + ColorMath.random(-25, 25) + 360) % 360; // 類似色相
+                            let baseL_weak = ColorMath.random(0.65, 0.82);
+                            let baseC_weak = ColorMath.random(0.08, 0.16);
+                            color1 = { l: baseL_weak + ColorMath.random(-0.05, 0.05), c: baseC_weak, h: h1 };
+                            color3 = { l: baseL_weak + ColorMath.random(-0.05, 0.05), c: baseC_weak, h: h2 };
+                        }
+                        
+                        const sepType = Math.floor(Math.random() * 5);
+                        if (sepType === 0) {
+                            // 白
+                            separationColor = { l: ColorMath.random(0.92, 0.98), c: ColorMath.random(0.00, 0.02), h: 0 };
+                        } else if (sepType === 1) {
+                            // 黒
+                            separationColor = { l: ColorMath.random(0.12, 0.22), c: ColorMath.random(0.00, 0.02), h: 0 };
+                        } else if (sepType === 2) {
+                            // グレー
+                            separationColor = { l: ColorMath.random(0.45, 0.55), c: ColorMath.random(0.01, 0.03), h: 0 };
+                        } else if (sepType === 3) {
+                            // ゴールド（金）
+                            separationColor = { l: ColorMath.random(0.68, 0.78), c: ColorMath.random(0.14, 0.20), h: ColorMath.random(60, 75) };
+                        } else {
+                            // シルバー（銀）
+                            separationColor = { l: ColorMath.random(0.78, 0.88), c: ColorMath.random(0.02, 0.05), h: ColorMath.random(220, 250) };
+                        }
+                        
+                        okList.push(color1);
+                        okList.push(separationColor);
+                        okList.push(color3);
                     } else if (['dyad', 'triad', 'tetrad', 'pentad', 'hexad', 'split_complementary'].includes(subMode)) {
                         // ダイアード、トライアド、スプリット等も含め、現在の「色数(count)」に合わせて360度を均等割り（または対応角）にする
                         const step = 360 / count;
                         for (let i = 0; i < count; i++) {
                             let hOffset = step * i;
                             if (subMode === 'split_complementary' && count === 3) {
-                                const angles = [0, 150, 210];
+                                const angles = [150, 0, 210];
                                 hOffset = angles[i] || 0;
                             }
                             
@@ -908,8 +1021,11 @@
                             tonal: 'トーナル配色 (ダルトーン系)',
                             accent_color: 'アクセントカラー (対照色強調)',
                             dyad: 'ダイアード / 2色補色 (2色)',
+                            bicolor: 'ビコロール配色 (2色)',
                             triad: 'トライアド / 3等分 (3色)',
                             split_complementary: 'スプリットコンプリメンタリー (3色)',
+                            tricolor: 'トリコロール配色 (3色)',
+                            separation: 'セパレーション配色 (3色)',
                             tetrad: 'テトラード / 4等分 (4色)',
                             pentad: 'ペンタード / 5等分 (5色)',
                             hexad: 'ヘクサード / 6等分 (6色)',
@@ -922,7 +1038,18 @@
                             warm_natural: 'ウォームナチュラル',
                             fresh_natural: 'フレッシュナチュラル',
                             elegant: 'エレガント',
-                            romantic: 'ロマンチック'
+                            romantic: 'ロマンチック',
+                            natural: 'ナチュラル',
+                            gorgeous: 'ゴージャス',
+                            feminine: 'フェミニン',
+                            dandy: 'ダンディ',
+                            ethnic: 'エスニック',
+                            retro: 'レトロ',
+                            pop: 'ポップ',
+                            minimal: 'ミニマル',
+                            cyber: 'サイバー / フューチャリスティック',
+                            japanese: '和風 / ジャパニーズ・モダン',
+                            pastel: 'パステル'
                         }
                     },
                     en: {
@@ -979,8 +1106,11 @@
                             tonal: 'Tonal (Dull Tone System)',
                             accent_color: 'Accent Color (Contrast Emphasis)',
                             dyad: 'Dyad / Complementary (2 Colors)',
+                            bicolor: 'Bicolor / Two-Tone (2 Colors)',
                             triad: 'Triad / 3-Split (3 Colors)',
                             split_complementary: 'Split Complementary (3 Colors)',
+                            tricolor: 'Tricolore / Tri-Color (3 Colors)',
+                            separation: 'Separation / Color Separation (3 Colors)',
                             tetrad: 'Tetrad / 4-Split (4 Colors)',
                             pentad: 'Pentad / 5-Split (5 Colors)',
                             hexad: 'Hexad / 6-Split (6 Colors)',
@@ -993,7 +1123,18 @@
                             warm_natural: 'Warm Natural',
                             fresh_natural: 'Fresh Natural',
                             elegant: 'Elegant',
-                            romantic: 'Romantic'
+                            romantic: 'Romantic',
+                            natural: 'Natural',
+                            gorgeous: 'Gorgeous',
+                            feminine: 'Feminine',
+                            dandy: 'Dandy',
+                            ethnic: 'Ethnic',
+                            retro: 'Retro',
+                            pop: 'Pop',
+                            minimal: 'Minimal',
+                            cyber: 'Cyber / Futuristic',
+                            japanese: 'Japanese / Wafuu',
+                            pastel: 'Pastel'
                         }
                     }
                 };
@@ -1262,8 +1403,12 @@
                     const fixedCountValues = Object.values(countBasedSubModes);
 
                     let targetSubVal = prevSubVal;
-                    // ユーザーが「ダイアードやトライアドなど」を選択中で、スライダー等で色数を変更した場合
-                    if (fixedCountValues.includes(prevSubVal) && countBasedSubModes[count]) {
+                    // ビコロール ⇄ トリコロールの相互連動
+                    if (prevSubVal === 'bicolor' && count === 3) {
+                        targetSubVal = 'tricolor';
+                    } else if (prevSubVal === 'tricolor' && count === 2) {
+                        targetSubVal = 'bicolor';
+                    } else if (fixedCountValues.includes(prevSubVal) && countBasedSubModes[count]) {
                         targetSubVal = countBasedSubModes[count]; // 変更後の色数に対応するサブカテゴリへ自動切替
                     }
 
