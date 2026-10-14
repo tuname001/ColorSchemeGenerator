@@ -141,6 +141,7 @@
             transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             user-select: none;
+            touch-action: none; /* スマホ等のタッチ操作時に画面スクロールと競合して離れてしまうのを防止 */
         }
         /* 1行を維持したまま画面幅に応じて限界まで縮小するアクションボタン群のスタイル */
         div.responsive-action-buttons {
@@ -1651,6 +1652,7 @@
                     // --- Pointer Events によるリアルタイムドラッグ＆ドロップ並び替え ---
                     let isDraggingPane = false;
                     let startX = 0;
+                    let lastClientX = 0; // 追加: 前回のX座標（移動方向判定用）
                     let startPaneLeft = 0;
                     let panePlaceholder = null;
 
@@ -1668,6 +1670,7 @@
                         const rect = pane.getBoundingClientRect();
                         const containerRect = this.dom.colorPanes.getBoundingClientRect();
                         startX = e.clientX;
+                        lastClientX = e.clientX; // 初期化
                         startPaneLeft = rect.left - containerRect.left;
 
                         // プレースホルダーを作成して元の位置に挿入
@@ -1693,7 +1696,13 @@
 
                     pane.addEventListener('pointermove', (e) => {
                         if (!isDraggingPane) return;
-                        const deltaX = e.clientX - startX;
+                        const currentX = e.clientX;
+                        const direction = currentX > lastClientX ? 'right' : (currentX < lastClientX ? 'left' : null);
+                        if (currentX !== lastClientX) {
+                            lastClientX = currentX;
+                        }
+
+                        const deltaX = currentX - startX;
                         pane.style.left = `${startPaneLeft + deltaX}px`;
 
                         const paneRect = pane.getBoundingClientRect();
@@ -1703,20 +1712,34 @@
                         const allChildren = Array.from(container.children);
                         const placeholderIdx = allChildren.indexOf(panePlaceholder);
 
-                        // 左右の隣接要素と中心座標を比較してリアルタイムに入れ替え
-                        for (let sib of children) {
-                            const sibRect = sib.getBoundingClientRect();
-                            const sibCenterX = sibRect.left + sibRect.width / 2;
-                            const sibIdx = allChildren.indexOf(sib);
-
-                            if (paneCenterX > sibCenterX && sibIdx > placeholderIdx) {
-                                container.insertBefore(panePlaceholder, sib.nextSibling);
-                                this.updateBackground();
-                                break;
-                            } else if (paneCenterX < sibCenterX && sibIdx < placeholderIdx) {
-                                container.insertBefore(panePlaceholder, sib);
-                                this.updateBackground();
-                                break;
+                        if (direction === 'right') {
+                            // 右方向に移動中：プレースホルダーより右にある隣接要素を左から順にチェック
+                            for (let sib of children) {
+                                const sibIdx = allChildren.indexOf(sib);
+                                if (sibIdx > placeholderIdx) {
+                                    const sibRect = sib.getBoundingClientRect();
+                                    // 移動中の色領域の中心が、対象の隣接要素の左端を超えた瞬間に入れ替える
+                                    if (paneCenterX >= sibRect.left) {
+                                        container.insertBefore(panePlaceholder, sib.nextSibling);
+                                        this.updateBackground();
+                                        break;
+                                    }
+                                }
+                            }
+                        } else if (direction === 'left') {
+                            // 左方向に移動中：プレースホルダーより左にある隣接要素を右から順にチェック（逆順）
+                            for (let i = children.length - 1; i >= 0; i--) {
+                                const sib = children[i];
+                                const sibIdx = allChildren.indexOf(sib);
+                                if (sibIdx < placeholderIdx) {
+                                    const sibRect = sib.getBoundingClientRect();
+                                    // 移動中の色領域の中心が、対象の隣接要素の右端を超えた瞬間に入れ替える
+                                    if (paneCenterX <= sibRect.right) {
+                                        container.insertBefore(panePlaceholder, sib);
+                                        this.updateBackground();
+                                        break;
+                                    }
+                                }
                             }
                         }
                     });
@@ -2374,6 +2397,7 @@
                 this.stocks.forEach((stock, index) => {
                     const item = document.createElement('div');
                     item.className = 'bg-black/40 border border-white/10 rounded-xl p-3 space-y-2 select-none';
+                    item.style.touchAction = 'none'; /* スマホ等のタッチ操作時に画面スクロールと競合して離れてしまうのを防止 */
                     item.dataset.stockIndex = index;
 
                     let isDragging = false;
