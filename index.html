@@ -391,8 +391,8 @@
 
         <!-- アクションボタン群 (統合ドロップダウン & 共有機能) -->
         <div class="mt-2 space-y-2 pt-3 border-t border-white/10 flex-shrink-0 px-6">
-            <div class="flex gap-2">
-                <select id="export-share-select" class="flex-1 bg-black/40 border border-white/20 rounded-xl p-2 text-white text-xs outline-none focus:border-indigo-500 transition-colors cursor-pointer">
+            <div class="flex gap-2 min-w-0">
+                <select id="export-share-select" class="min-w-0 flex-1 bg-black/40 border border-white/20 rounded-xl p-2 text-white text-[11px] outline-none focus:border-indigo-500 transition-colors cursor-pointer truncate">
                     <option id="opt-url" value="url" selected>共有URLコピー</option>
                     <option id="opt-css" value="css">CSS変数コピー</option>
                     <option id="opt-tailwind" value="tailwind">Tailwind設定コピー</option>
@@ -401,10 +401,16 @@
                     <option id="opt-android" value="android">Android / XMLコピー</option>
                     <option id="opt-flutter" value="flutter">Flutter / Dartコピー</option>
                     <option id="opt-shader" value="shader">HLSL / GLSLコピー</option>
+                    <option id="opt-unity" value="unity">Unity C# (Color) コピー</option>
+                    <option id="opt-godot" value="godot">Godot (GDScript) コピー</option>
+                    <option id="opt-threejs" value="threejs">Three.js / JS オブジェクトコピー</option>
+                    <option id="opt-png" value="png">パレット画像 (PNG) 出力</option>
+                    <option id="opt-square-png" value="square_png">正方形画像 (PNG) 出力</option>
+                    <option id="opt-svg" value="svg">パレット画像 (SVG) 出力</option>
                     <option id="opt-json" value="json">JSONファイル出力</option>
                     <option id="opt-csv" value="csv">CSVファイル出力</option>
                 </select>
-                <button id="execute-export-btn" style="background-color: #3B82F6;" class="px-4 py-2 hover:opacity-95 rounded-xl text-xs font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
+                <button id="execute-export-btn" style="background-color: #3B82F6;" class="px-3 py-2 flex-shrink-0 hover:opacity-95 rounded-xl text-xs font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
                     <span id="txt-execute">実行</span>
                 </button>
             </div>
@@ -1046,6 +1052,9 @@
                         copiedAndroid: 'Android/XMLをコピーしました！',
                         copiedFlutter: 'Flutter/Dartコードをコピーしました！',
                         copiedShader: 'HLSL/GLSLシェーダーコードをコピーしました！',
+                        copiedUnity: 'Unity C#コードをコピーしました！',
+                        copiedGodot: 'Godot GDScriptコードをコピーしました！',
+                        copiedThreejs: 'Three.js / JSオブジェクトをコピーしました！',
                         copiedUrl: '共有URLをコピーしました！',
                         colorCount: '色数',
                         globalAdjustment: '調整',
@@ -1067,6 +1076,12 @@
                             android: 'Android / XMLコピー',
                             flutter: 'Flutter / Dartコピー',
                             shader: 'HLSL / GLSLコピー',
+                            unity: 'Unity C# (Color) コピー',
+                            godot: 'Godot (GDScript) コピー',
+                            threejs: 'Three.js / JS オブジェクトコピー',
+                            png: 'パレット画像 (PNG) 出力',
+                            square_png: '正方形画像 (PNG) 出力',
+                            svg: 'パレット画像 (SVG) 出力',
                             url: '共有URLコピー',
                             json: 'JSONファイル出力',
                             csv: 'CSVファイル出力'
@@ -1163,6 +1178,9 @@
                         copiedAndroid: 'Android/XML copied!',
                         copiedFlutter: 'Flutter/Dart code copied!',
                         copiedShader: 'HLSL/GLSL shader code copied!',
+                        copiedUnity: 'Unity C# code copied!',
+                        copiedGodot: 'Godot GDScript code copied!',
+                        copiedThreejs: 'Three.js / JS object copied!',
                         copiedUrl: 'Share URL copied!',
                         colorCount: 'Colors',
                         visionModeLabel: 'Color Vision Deficiency Simulator',
@@ -1174,6 +1192,12 @@
                             android: 'Copy Android / XML',
                             flutter: 'Copy Flutter / Dart',
                             shader: 'Copy HLSL / GLSL',
+                            unity: 'Copy Unity C# (Color)',
+                            godot: 'Copy Godot (GDScript)',
+                            threejs: 'Copy Three.js / JS Object',
+                            png: 'Export Palette Image (PNG)',
+                            square_png: 'Export Square Image (PNG)',
+                            svg: 'Export Palette Image (SVG)',
                             url: 'Copy Share URL',
                             json: 'Export JSON',
                             csv: 'Export CSV'
@@ -1423,6 +1447,12 @@
                         else if (val === 'android') this.copyAndroid();
                         else if (val === 'flutter') this.copyFlutter();
                         else if (val === 'shader') this.copyShader();
+                        else if (val === 'unity') this.copyUnity();
+                        else if (val === 'godot') this.copyGodot();
+                        else if (val === 'threejs') this.copyThreejs();
+                        else if (val === 'png') this.exportImage('png');
+                        else if (val === 'square_png') this.exportImage('square_png');
+                        else if (val === 'svg') this.exportImage('svg');
                         else if (val === 'url') this.copyShareUrl();
                         else if (val === 'json') this.exportJson();
                         else if (val === 'csv') this.exportCsv();
@@ -2582,6 +2612,12 @@
                     document.getElementById('opt-android').textContent = eo.android;
                     document.getElementById('opt-flutter').textContent = eo.flutter;
                     document.getElementById('opt-shader').textContent = eo.shader;
+                    document.getElementById('opt-unity').textContent = eo.unity;
+                    document.getElementById('opt-godot').textContent = eo.godot;
+                    document.getElementById('opt-threejs').textContent = eo.threejs;
+                    document.getElementById('opt-png').textContent = eo.png;
+                    document.getElementById('opt-square-png').textContent = eo.square_png;
+                    document.getElementById('opt-svg').textContent = eo.svg;
                     document.getElementById('opt-url').textContent = eo.url;
                     document.getElementById('opt-json').textContent = eo.json;
                     document.getElementById('opt-csv').textContent = eo.csv;
@@ -2985,6 +3021,158 @@
                 this.copyToClipboard(shaderText, 'shader');
             }
 
+            // Unity C# コピー
+            copyUnity() {
+                const unityText = this.currentColors.map((c, i) => {
+                    const hex = this.getSimulatedHex(c);
+                    const simRgb = this.getSimulatedRgb(c.rgb);
+                    return `// ColorUtility.TryParseHtmlString("${hex}", out Color color${i + 1});\npublic static readonly Color Color${i + 1} = new Color32(${simRgb[0]}, ${simRgb[1]}, ${simRgb[2]}, 255); // ${hex}`;
+                }).join('\n\n');
+                this.copyToClipboard(unityText, 'unity');
+            }
+
+            // Godot Engine (GDScript) コピー
+            copyGodot() {
+                const godotText = this.currentColors.map((c, i) => {
+                    const hex = this.getSimulatedHex(c);
+                    return `const COLOR_${i + 1} = Color("${hex}")`;
+                }).join('\n');
+                this.copyToClipboard(godotText, 'godot');
+            }
+
+            // Three.js / JavaScript 配列・オブジェクト形式コピー
+            copyThreejs() {
+                const objEntries = this.currentColors.map((c, i) => {
+                    const hex = this.getSimulatedHex(c);
+                    const simRgb = this.getSimulatedRgb(c.rgb);
+                    return `  color${i + 1}: { hex: "${hex}", rgb: [${simRgb.join(', ')}], three: new THREE.Color("${hex}") }`;
+                }).join(',\n');
+                const jsText = `const PaletteColors = {\n${objEntries}\n};`;
+                this.copyToClipboard(jsText, 'threejs');
+            }
+
+            // パレット画像（PNG / SVG）のエクスポート
+            exportImage(type) {
+                const isSquare = (type === 'square_png');
+                const width = isSquare ? 1000 : 1200;
+                const height = isSquare ? 1000 : 630;
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+
+                const ratios = this.currentColors.map(c => c.widthRatio !== undefined ? c.widthRatio : 1);
+                const totalRatio = ratios.reduce((sum, r) => sum + r, 0) || 1;
+
+                if (isSquare) {
+                    // 正方形PNG：枠なし・文字なしで完全に滑らかなグラデーション（線形グラデーション）を描画
+                    const grad = ctx.createLinearGradient(0, 0, width, 0);
+                    let currentPercent = 0;
+                    ratios.forEach((ratio, i) => {
+                        const percent = (ratio / totalRatio) * 100;
+                        const startPct = currentPercent;
+                        let endPct = currentPercent + percent;
+                        if (i === ratios.length - 1) endPct = 100;
+                        const midPct = startPct + ((endPct - startPct) / 2);
+
+                        const simRgb = this.getSimulatedRgb(this.currentColors[i].rgb);
+                        const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+
+                        const startStop = startPct / 100;
+                        const midStop = midPct / 100;
+                        const endStop = endPct / 100;
+
+                        if (i === 0) {
+                            grad.addColorStop(startStop, hex);
+                            grad.addColorStop(midStop, hex);
+                        } else if (i === ratios.length - 1) {
+                            grad.addColorStop(midStop, hex);
+                            grad.addColorStop(1.0, hex);
+                        } else {
+                            grad.addColorStop(midStop, hex);
+                        }
+                        currentPercent = endPct;
+                    });
+
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, width, height);
+
+                } else {
+                    // 通常のPNG出力
+                    ctx.fillStyle = '#111827';
+                    ctx.fillRect(0, 0, width, height);
+
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = 'bold 28px sans-serif';
+                    ctx.fillText('Color Palette', 60, 70);
+
+                    const barX = 60;
+                    const barY = 110;
+                    const barWidth = width - 120;
+                    const barHeight = 360;
+
+                    let currentX = barX;
+                    this.currentColors.forEach((c, i) => {
+                        const simRgb = this.getSimulatedRgb(c.rgb);
+                        const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                        const w = (ratios[i] / totalRatio) * barWidth;
+
+                        ctx.fillStyle = hex;
+                        ctx.fillRect(currentX, barY, w, barHeight);
+
+                        ctx.fillStyle = ColorMath.getAccessibleTextColor(simRgb[0], simRgb[1], simRgb[2]);
+                        ctx.font = 'bold 20px monospace';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(hex, currentX + w / 2, barY + barHeight - 40);
+
+                        currentX += w;
+                    });
+
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.font = '16px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.fillText('Generated by Color Scheme Generator', 60, 540);
+                }
+
+                if (type === 'png' || type === 'square_png') {
+                    canvas.toBlob((blob) => {
+                        this.downloadBlob(blob, `palette_${type === 'square_png' ? 'square_' : ''}${Date.now()}.png`);
+                    }, 'image/png');
+                } else if (type === 'svg') {
+                    // SVG文字列の生成
+                    let svgRects = '';
+                    let curX = 0;
+                    this.currentColors.forEach((c, i) => {
+                        const simRgb = this.getSimulatedRgb(c.rgb);
+                        const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                        const wPct = (ratios[i] / totalRatio) * 100;
+                        const textColor = ColorMath.getAccessibleTextColor(simRgb[0], simRgb[1], simRgb[2]);
+
+                        svgRects += `<rect x="${curX}%" y="0" width="${wPct}%" height="100%" fill="${hex}" />\n`;
+                        svgRects += `<text x="${curX + wPct/2}%" y="85%" fill="${textColor}" font-family="monospace" font-size="20" font-weight="bold" text-anchor="middle">${hex}</text>\n`;
+                        curX += wPct;
+                    });
+
+                    const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+  <rect width="100%" height="100%" fill="#111827"/>
+  <text x="60" y="70" fill="#FFFFFF" font-family="sans-serif" font-size="28" font-weight="bold">Color Palette</text>
+  <g transform="translate(60, 110)">
+    <svg width="${barWidth}" height="${barHeight}" rx="12" overflow="hidden">
+      ${svgRects}
+    </svg>
+  </g>
+  <text x="60" y="540" fill="rgba(255,255,255,0.6)" font-family="sans-serif" font-size="16">Generated by Color Scheme Generator</text>
+</svg>`;
+
+                    const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8;' });
+                    this.downloadBlob(blob, `palette_${Date.now()}.svg`);
+                }
+            }
+
             // シミュレーション後のHEXコードを取得するヘルパー
             getSimulatedHex(colorObj) {
                 const simRgb = this.getSimulatedRgb(colorObj.rgb);
@@ -3140,6 +3328,9 @@
                     if (messageType === 'android') message = t.copiedAndroid;
                     if (messageType === 'flutter') message = t.copiedFlutter;
                     if (messageType === 'shader') message = t.copiedShader;
+                    if (messageType === 'unity') message = t.copiedUnity;
+                    if (messageType === 'godot') message = t.copiedGodot;
+                    if (messageType === 'threejs') message = t.copiedThreejs;
                     if (messageType === 'url') message = t.copiedUrl;
 
                     this.dom.toastMsg.textContent = message;
