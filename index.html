@@ -1402,6 +1402,7 @@
                 if (this.dom.visionModeSelect) {
                     this.dom.visionModeSelect.addEventListener('change', () => {
                         this.renderPanes();
+                        this.pushHistory();
                     });
                 }
 
@@ -2054,7 +2055,7 @@
                     const copyBtn = document.createElement('button');
                     copyBtn.textContent = 'Copy';
                     copyBtn.className = 'text-xs uppercase tracking-widest opacity-60 font-semibold mb-2 md:mb-4 hover:opacity-100 transition-opacity cursor-pointer';
-                    copyBtn.addEventListener('click', () => this.copyToClipboard(this.currentColors[index].hex));
+                    copyBtn.addEventListener('click', () => this.copyToClipboard(this.getSimulatedHex(this.currentColors[index])));
 
                     pane.appendChild(input);
                     pane.appendChild(copyBtn);
@@ -2347,7 +2348,8 @@
                     satStep: this.dom.satStepInput.value,
                     litStep: this.dom.litStepInput.value,
                     currentLang: this.currentLang,
-                    exportShareSelect: this.dom.exportShareSelect ? this.dom.exportShareSelect.value : 'url'
+                    exportShareSelect: this.dom.exportShareSelect ? this.dom.exportShareSelect.value : 'url',
+                    visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal'
                 };
                 localStorage.setItem(CONFIG.STATE_STORAGE_KEY, JSON.stringify(state));
             }
@@ -2400,6 +2402,9 @@
                     if (state.litStep !== undefined) {
                         this.dom.litStepSlider.value = state.litStep;
                         this.dom.litStepInput.value = state.litStep;
+                    }
+                    if (state.visionMode && this.dom.visionModeSelect) {
+                        this.dom.visionModeSelect.value = state.visionMode;
                     }
                     if (state.exportShareSelect && this.dom.exportShareSelect) {
                         this.dom.exportShareSelect.value = state.exportShareSelect;
@@ -2456,7 +2461,8 @@
                     globalLit: this.dom.globalLitInput.value,
                     hueStep: this.dom.hueStepInput.value,
                     satStep: this.dom.satStepInput.value,
-                    litStep: this.dom.litStepInput.value
+                    litStep: this.dom.litStepInput.value,
+                    visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal'
                 };
                 if (this.historyIndex >= 0 && this.history[this.historyIndex]) {
                     if (JSON.stringify(this.history[this.historyIndex]) === JSON.stringify(currentState)) return;
@@ -2501,6 +2507,9 @@
                 if (state.litStep !== undefined) {
                     this.dom.litStepSlider.value = state.litStep;
                     this.dom.litStepInput.value = state.litStep;
+                }
+                if (state.visionMode && this.dom.visionModeSelect) {
+                    this.dom.visionModeSelect.value = state.visionMode;
                 }
                 this.renderPanes();
             }
@@ -2548,6 +2557,7 @@
                     hueStep: this.dom.hueStepInput.value,
                     satStep: this.dom.satStepInput.value,
                     litStep: this.dom.litStepInput.value,
+                    visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal',
                     colors: JSON.parse(JSON.stringify(this.currentColors))
                 };
                 this.stocks.push(newStock);
@@ -2867,6 +2877,9 @@
                             this.dom.litStepSlider.value = stock.litStep;
                             this.dom.litStepInput.value = stock.litStep;
                         }
+                        if (stock.visionMode && this.dom.visionModeSelect) {
+                            this.dom.visionModeSelect.value = stock.visionMode;
+                        }
 
                         this.currentColors = JSON.parse(JSON.stringify(stock.colors));
                         this.renderPanes();
@@ -2892,6 +2905,7 @@
                             hueStep: this.dom.hueStepInput.value,
                             satStep: this.dom.satStepInput.value,
                             litStep: this.dom.litStepInput.value,
+                            visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal',
                             colors: JSON.parse(JSON.stringify(this.currentColors))
                         };
                         localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(this.stocks));
@@ -2911,7 +2925,7 @@
 
             // CSS Variables コピー
             copyCss() {
-                const vars = this.currentColors.map((c, i) => `  --color-${i + 1}: ${c.hex};`).join('\n');
+                const vars = this.currentColors.map((c, i) => `  --color-${i + 1}: ${this.getSimulatedHex(c)};`).join('\n');
                 const cssText = `:root {\n${vars}\n}`;
                 this.copyToClipboard(cssText, 'css');
             }
@@ -2920,7 +2934,7 @@
             copyTailwind() {
                 const colorObj = {};
                 this.currentColors.forEach((c, i) => {
-                    colorObj[`color-${i + 1}`] = c.hex;
+                    colorObj[`color-${i + 1}`] = this.getSimulatedHex(c);
                 });
                 const tailwindText = `// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: {\n        palette: ${JSON.stringify(colorObj, null, 10).replace(/\n\s*/g, ' ')}\n      }\n    }\n  }\n};`;
                 this.copyToClipboard(tailwindText, 'tailwind');
@@ -2928,29 +2942,31 @@
 
             // SCSS / Less 変数コピー
             copyScss() {
-                const vars = this.currentColors.map((c, i) => `$color-${i + 1}: ${c.hex};`).join('\n');
+                const vars = this.currentColors.map((c, i) => `$color-${i + 1}: ${this.getSimulatedHex(c)};`).join('\n');
                 this.copyToClipboard(vars, 'scss');
             }
 
             // iOS / Swift (UIColor) コピー
             copySwift() {
                 const swiftText = this.currentColors.map((c, i) => {
-                    const r = c.rgb[0] / 255, g = c.rgb[1] / 255, b = c.rgb[2] / 255;
-                    return `let color${i + 1} = UIColor(red: ${r.toFixed(3)}, green: ${g.toFixed(3)}, blue: ${b.toFixed(3)}, alpha: 1.0) // ${c.hex}`;
+                    const simRgb = this.getSimulatedRgb(c.rgb);
+                    const r = simRgb[0] / 255, g = simRgb[1] / 255, b = simRgb[2] / 255;
+                    const hex = this.getSimulatedHex(c);
+                    return `let color${i + 1} = UIColor(red: ${r.toFixed(3)}, green: ${g.toFixed(3)}, blue: ${b.toFixed(3)}, alpha: 1.0) // ${hex}`;
                 }).join('\n');
                 this.copyToClipboard(swiftText, 'swift');
             }
 
             // Android / XML (colors.xml) コピー
             copyAndroid() {
-                const androidText = `<resources>\n` + this.currentColors.map((c, i) => `    <color name="palette_color_${i + 1}">${c.hex}</color>`).join('\n') + `\n</resources>`;
+                const androidText = `<resources>\n` + this.currentColors.map((c, i) => `    <color name="palette_color_${i + 1}">${this.getSimulatedHex(c)}</color>`).join('\n') + `\n</resources>`;
                 this.copyToClipboard(androidText, 'android');
             }
 
             // Flutter / Dart コピー
             copyFlutter() {
                 const flutterText = this.currentColors.map((c, i) => {
-                    const hexClean = c.hex.replace('#', '');
+                    const hexClean = this.getSimulatedHex(c).replace('#', '');
                     return `static const Color color${i + 1} = Color(0xFF${hexClean});`;
                 }).join('\n');
                 this.copyToClipboard(flutterText, 'flutter');
@@ -2959,12 +2975,20 @@
             // HLSL / GLSL (ゲーム・シェーダー開発向け) コピー
             copyShader() {
                 const shaderText = this.currentColors.map((c, i) => {
-                    const r = (c.rgb[0] / 255).toFixed(3);
-                    const g = (c.rgb[1] / 255).toFixed(3);
-                    const b = (c.rgb[2] / 255).toFixed(3);
-                    return `static const float3 COLOR_${i + 1} = float3(${r}, ${g}, ${b}); // ${c.hex}`;
+                    const simRgb = this.getSimulatedRgb(c.rgb);
+                    const r = (simRgb[0] / 255).toFixed(3);
+                    const g = (simRgb[1] / 255).toFixed(3);
+                    const b = (simRgb[2] / 255).toFixed(3);
+                    const hex = this.getSimulatedHex(c);
+                    return `static const float3 COLOR_${i + 1} = float3(${r}, ${g}, ${b}); // ${hex}`;
                 }).join('\n');
                 this.copyToClipboard(shaderText, 'shader');
+            }
+
+            // シミュレーション後のHEXコードを取得するヘルパー
+            getSimulatedHex(colorObj) {
+                const simRgb = this.getSimulatedRgb(colorObj.rgb);
+                return ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
             }
 
             // JSON エクスポート
@@ -3036,7 +3060,8 @@
                     isSplitMode: this.isSplitMode,
                     globalHue: this.dom.globalHueInput.value,
                     globalSat: this.dom.globalSatInput.value,
-                    globalLit: this.dom.globalLitInput.value
+                    globalLit: this.dom.globalLitInput.value,
+                    visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal'
                 };
                 const jsonStr = JSON.stringify(state);
                 const encoded = btoa(encodeURIComponent(jsonStr));
@@ -3072,6 +3097,9 @@
                     if (state.globalLit !== undefined) {
                         this.dom.globalLitSlider.value = state.globalLit;
                         this.dom.globalLitInput.value = state.globalLit;
+                    }
+                    if (state.visionMode && this.dom.visionModeSelect) {
+                        this.dom.visionModeSelect.value = state.visionMode;
                     }
 
                     if (state.colors && state.colors.length > 0) {
