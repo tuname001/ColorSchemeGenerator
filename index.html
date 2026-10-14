@@ -2360,7 +2360,34 @@
                 this.dom.stockList.innerHTML = '';
                 this.stocks.forEach((stock, index) => {
                     const item = document.createElement('div');
-                    item.className = 'bg-black/40 border border-white/10 rounded-xl p-3 space-y-2';
+                    item.className = 'bg-black/40 border border-white/10 rounded-xl p-3 space-y-2 cursor-grab active:cursor-grabbing';
+                    item.draggable = true;
+
+                    item.addEventListener('dragstart', (e) => {
+                        if (e.target.tagName === 'INPUT' || e.target.closest('input')) {
+                            e.preventDefault();
+                            return;
+                        }
+                        e.dataTransfer.setData('text/plain', index);
+                        item.classList.add('opacity-40');
+                    });
+                    item.addEventListener('dragend', () => {
+                        item.classList.remove('opacity-40');
+                    });
+                    item.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                    });
+                    item.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+                        const toIdx = index;
+                        if (fromIdx !== toIdx && !isNaN(fromIdx)) {
+                            const moved = this.stocks.splice(fromIdx, 1)[0];
+                            this.stocks.splice(toIdx, 0, moved);
+                            localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(this.stocks));
+                            this.renderStocks();
+                        }
+                    });
 
                     const hexes = stock.colors.map(c => c.hex);
                     const ratios = stock.colors.map(c => c.widthRatio !== undefined ? c.widthRatio : 1);
@@ -2389,6 +2416,12 @@
                             <div class="preview-bar flex h-5 -mx-2 w-[calc(100%+16px)]"></div>
                         </div>
                     `;
+
+                    const nameInput = item.querySelector('.stock-name');
+                    nameInput.addEventListener('mousedown', () => { item.draggable = false; });
+                    nameInput.addEventListener('blur', () => { item.draggable = true; });
+                    nameInput.addEventListener('touchstart', () => { item.draggable = false; }, { passive: true });
+                    nameInput.addEventListener('touchend', () => { item.draggable = true; }, { passive: true });
 
                     const previewBar = item.querySelector('.preview-bar');
                     if (isSplit) {
