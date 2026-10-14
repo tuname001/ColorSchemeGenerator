@@ -133,9 +133,22 @@
             background: rgba(255, 255, 255, 0.35);
         }
 
-        /* 編集画面のスクロールバーを2倍の太さ（12px）に設定 */
-        #settings-panel *::-webkit-scrollbar {
-            width: 12px;
+        /* 編集画面のサイドバー：テキスト選択を禁止（入力欄等を除く）し、標準スクロールバーを非表示にしてカスタムスクロールバーを使用 */
+        #settings-panel {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #settings-panel input,
+        #settings-panel select,
+        #settings-panel textarea {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        #settings-panel .overflow-y-auto {
+            scrollbar-width: none;
+        }
+        #settings-panel .overflow-y-auto::-webkit-scrollbar {
+            display: none;
         }
         
         input[type=range] {
@@ -218,11 +231,11 @@
     <div id="drawer-overlay" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm transition-opacity"></div>
 
     <!-- 編集画面 (サイドバー / モバイルドロワー) -->
-    <aside id="settings-panel" class="absolute inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col p-6 text-white shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 ease-in-out">
+    <aside id="settings-panel" class="absolute inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col py-6 text-white shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 ease-in-out">
         <!-- リアルタイム縦長グラデーションプレビュー（狭い画面時にサイドバー右縁に追従） -->
         <div id="sidebar-gradient-preview"></div>
 
-        <div class="flex justify-between items-center mb-4 flex-shrink-0">
+        <div class="flex justify-between items-center mb-4 flex-shrink-0 px-6">
             <h2 class="text-xl font-bold tracking-wider drop-shadow flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full inline-block" style="background-color: #3B82F6;"></span>
                 <span id="txt-edit-screen">編集画面</span>
@@ -234,7 +247,14 @@
             </div>
         </div>
         
-        <div class="flex-1 space-y-6 overflow-y-auto pr-3 mr-[-12px]" style="touch-action: pan-y; -webkit-overflow-scrolling: touch;">
+        <!-- スクロール領域の高さに正確に収まる相対ラッパー -->
+        <div class="relative flex-1 min-h-0 flex flex-col">
+            <!-- カスタムスクロールバー（もう少し左側に配置） -->
+            <div id="custom-scrollbar-track" class="absolute right-3.5 top-0 bottom-0 w-3 z-40 cursor-pointer">
+                <div id="custom-scrollbar-thumb" class="absolute right-0 w-3 bg-white/20 hover:bg-white/30 active:bg-white/35 rounded-[3px] cursor-pointer transition-colors"></div>
+            </div>
+
+            <div id="settings-scroll-container" class="flex-1 space-y-6 overflow-y-auto px-6 pr-10" style="touch-action: pan-y; -webkit-overflow-scrolling: touch;">
             <!-- 色数設定 -->
             <div>
                 <div class="flex justify-between items-center mb-2">
@@ -356,9 +376,10 @@
                 </div>
             </div>
         </div>
+        </div>
 
         <!-- アクションボタン群 (機能拡張) -->
-        <div class="mt-2 space-y-2 pt-3 border-t border-white/10 flex-shrink-0">
+        <div class="mt-2 space-y-2 pt-3 border-t border-white/10 flex-shrink-0 px-6">
             <div class="grid grid-cols-2 gap-2">
                 <button id="copy-current-css-btn" style="background-color: rgba(59, 130, 246, 0.8); border-color: rgba(59, 130, 246, 0.3);" class="py-2.5 hover:opacity-95 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
                     CSSコピー
@@ -930,6 +951,7 @@
 
                 this.initDOM();
                 this.bindEvents();
+                this.initCustomScrollbar();
                 
                 if (!this.loadState()) {
                     this.updateSubModes();
@@ -952,6 +974,9 @@
             initDOM() {
                 this.dom = {
                     resetCategoryBtn: document.getElementById('reset-category-btn'),
+                    settingsScrollContainer: document.getElementById('settings-scroll-container'),
+                    customScrollbarTrack: document.getElementById('custom-scrollbar-track'),
+                    customScrollbarThumb: document.getElementById('custom-scrollbar-thumb'),
                     resetGlobalBtn: document.getElementById('reset-global-btn'),
                     langToggleBtn: document.getElementById('lang-toggle-btn'),
                     mainContainer: document.getElementById('main-container'),
@@ -1357,6 +1382,91 @@
                         else this.undo();
                     }
                 }, { passive: true });
+            }
+
+            initCustomScrollbar() {
+                const container = this.dom.settingsScrollContainer;
+                const track = this.dom.customScrollbarTrack;
+                const thumb = this.dom.customScrollbarThumb;
+                if (!container || !track || !thumb) return;
+
+                const updateThumb = () => {
+                    const contentHeight = container.scrollHeight;
+                    const visibleHeight = container.clientHeight;
+
+                    if (contentHeight <= visibleHeight) {
+                        track.style.display = 'none';
+                        return;
+                    } else {
+                        track.style.display = 'block';
+                    }
+
+                    const trackHeight = track.clientHeight;
+                    const thumbHeight = Math.max(30, (visibleHeight / contentHeight) * trackHeight);
+                    const scrollRatio = container.scrollTop / (contentHeight - visibleHeight);
+                    const maxThumbTop = trackHeight - thumbHeight;
+                    const thumbTop = scrollRatio * maxThumbTop;
+
+                    thumb.style.height = `${thumbHeight}px`;
+                    thumb.style.top = `${thumbTop}px`;
+                };
+
+                container.addEventListener('scroll', updateThumb);
+                window.addEventListener('resize', updateThumb);
+
+                setTimeout(updateThumb, 50);
+
+                let isDragging = false;
+                let dragStartY = 0;
+                let dragStartScrollTop = 0;
+
+                track.addEventListener('pointerdown', (e) => {
+                    const trackRect = track.getBoundingClientRect();
+                    const clickY = e.clientY - trackRect.top;
+                    const thumbHeight = thumb.clientHeight;
+                    const trackHeight = track.clientHeight;
+
+                    const targetRatio = Math.max(0, Math.min(1, (clickY - thumbHeight / 2) / (trackHeight - thumbHeight)));
+                    const maxScroll = container.scrollHeight - container.clientHeight;
+                    container.scrollTop = targetRatio * maxScroll;
+
+                    startDrag(e);
+                });
+
+                thumb.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    startDrag(e);
+                });
+
+                const startDrag = (e) => {
+                    isDragging = true;
+                    dragStartY = e.clientY;
+                    dragStartScrollTop = container.scrollTop;
+                    thumb.setPointerCapture(e.pointerId);
+                    e.preventDefault();
+                };
+
+                window.addEventListener('pointermove', (e) => {
+                    if (!isDragging) return;
+                    const deltaY = e.clientY - dragStartY;
+                    const trackHeight = track.clientHeight;
+                    const thumbHeight = thumb.clientHeight;
+                    const maxThumbTop = trackHeight - thumbHeight;
+
+                    if (maxThumbTop <= 0) return;
+
+                    const maxScroll = container.scrollHeight - container.clientHeight;
+                    const scrollDelta = (deltaY / maxThumbTop) * maxScroll;
+                    container.scrollTop = dragStartScrollTop + scrollDelta;
+                });
+
+                window.addEventListener('pointerup', (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    try {
+                        thumb.releasePointerCapture(e.pointerId);
+                    } catch (err) {}
+                });
             }
 
             handleShortcuts(e) {
