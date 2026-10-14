@@ -3065,37 +3065,51 @@
                 const totalRatio = ratios.reduce((sum, r) => sum + r, 0) || 1;
 
                 if (isSquare) {
-                    // 正方形PNG：枠なし・文字なしで完全に滑らかなグラデーション（線形グラデーション）を描画
-                    const grad = ctx.createLinearGradient(0, 0, width, 0);
-                    let currentPercent = 0;
-                    ratios.forEach((ratio, i) => {
-                        const percent = (ratio / totalRatio) * 100;
-                        const startPct = currentPercent;
-                        let endPct = currentPercent + percent;
-                        if (i === ratios.length - 1) endPct = 100;
-                        const midPct = startPct + ((endPct - startPct) / 2);
+                    if (this.isSplitMode) {
+                        // 正方形PNG（きっぱり分けるモード）：境界線なしでそれぞれの色のブロックをべた塗り描画
+                        let currentX = 0;
+                        ratios.forEach((ratio, i) => {
+                            const w = (ratio / totalRatio) * width;
+                            const simRgb = this.getSimulatedRgb(this.currentColors[i].rgb);
+                            const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
 
-                        const simRgb = this.getSimulatedRgb(this.currentColors[i].rgb);
-                        const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                            ctx.fillStyle = hex;
+                            ctx.fillRect(currentX, 0, w, height);
+                            currentX += w;
+                        });
+                    } else {
+                        // 正方形PNG（グラデーションモード）：枠なし・文字なしで完全に滑らかなグラデーションを描画
+                        const grad = ctx.createLinearGradient(0, 0, width, 0);
+                        let currentPercent = 0;
+                        ratios.forEach((ratio, i) => {
+                            const percent = (ratio / totalRatio) * 100;
+                            const startPct = currentPercent;
+                            let endPct = currentPercent + percent;
+                            if (i === ratios.length - 1) endPct = 100;
+                            const midPct = startPct + ((endPct - startPct) / 2);
 
-                        const startStop = startPct / 100;
-                        const midStop = midPct / 100;
-                        const endStop = endPct / 100;
+                            const simRgb = this.getSimulatedRgb(this.currentColors[i].rgb);
+                            const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
 
-                        if (i === 0) {
-                            grad.addColorStop(startStop, hex);
-                            grad.addColorStop(midStop, hex);
-                        } else if (i === ratios.length - 1) {
-                            grad.addColorStop(midStop, hex);
-                            grad.addColorStop(1.0, hex);
-                        } else {
-                            grad.addColorStop(midStop, hex);
-                        }
-                        currentPercent = endPct;
-                    });
+                            const startStop = startPct / 100;
+                            const midStop = midPct / 100;
+                            const endStop = endPct / 100;
 
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(0, 0, width, height);
+                            if (i === 0) {
+                                grad.addColorStop(startStop, hex);
+                                grad.addColorStop(midStop, hex);
+                            } else if (i === ratios.length - 1) {
+                                grad.addColorStop(midStop, hex);
+                                grad.addColorStop(1.0, hex);
+                            } else {
+                                grad.addColorStop(midStop, hex);
+                            }
+                            currentPercent = endPct;
+                        });
+
+                        ctx.fillStyle = grad;
+                        ctx.fillRect(0, 0, width, height);
+                    }
 
                 } else {
                     // 通常のPNG出力
