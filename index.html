@@ -131,6 +131,11 @@
         ::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.3);
         }
+
+        /* 編集画面のスクロールバーを2倍の太さ（12px）に設定 */
+        #settings-panel *::-webkit-scrollbar {
+            width: 12px;
+        }
         
         input[type=range] {
             accent-color: #E5F6FF;
@@ -212,7 +217,7 @@
     <div id="drawer-overlay" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm transition-opacity"></div>
 
     <!-- 編集画面 (サイドバー / モバイルドロワー) -->
-    <aside id="settings-panel" class="absolute inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col p-6 text-white shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 ease-in-out overflow-hidden">
+    <aside id="settings-panel" class="absolute inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col p-6 text-white shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 ease-in-out">
         <!-- リアルタイム縦長グラデーションプレビュー（狭い画面時にサイドバー右縁に追従） -->
         <div id="sidebar-gradient-preview"></div>
 
@@ -228,7 +233,7 @@
             </div>
         </div>
         
-        <div class="flex-1 space-y-6 overflow-y-auto pr-1">
+        <div class="flex-1 space-y-6 overflow-y-auto pr-3 mr-[-12px]" style="touch-action: pan-y; -webkit-overflow-scrolling: touch;">
             <!-- 色数設定 -->
             <div>
                 <div class="flex justify-between items-center mb-2">
@@ -1675,6 +1680,7 @@
 
                         // プレースホルダーを作成して元の位置に挿入
                         panePlaceholder = document.createElement('div');
+                        panePlaceholder.className = 'pane-placeholder';
                         panePlaceholder.style.width = `${rect.width}px`;
                         panePlaceholder.style.height = '100%';
                         panePlaceholder.style.flexShrink = '0';
@@ -1718,8 +1724,9 @@
                                 const sibIdx = allChildren.indexOf(sib);
                                 if (sibIdx > placeholderIdx) {
                                     const sibRect = sib.getBoundingClientRect();
-                                    // 移動中の色領域の中心が、対象の隣接要素の左端を超えた瞬間に入れ替える
-                                    if (paneCenterX >= sibRect.left) {
+                                    const sibCenterX = sibRect.left + sibRect.width / 2;
+                                    // 移動中の色領域の「右端が中心に重なる」または「中心が左端を超える」場合に入れ替える
+                                    if (paneRect.right >= sibCenterX || paneCenterX >= sibRect.left) {
                                         container.insertBefore(panePlaceholder, sib.nextSibling);
                                         this.updateBackground();
                                         break;
@@ -1733,8 +1740,9 @@
                                 const sibIdx = allChildren.indexOf(sib);
                                 if (sibIdx < placeholderIdx) {
                                     const sibRect = sib.getBoundingClientRect();
-                                    // 移動中の色領域の中心が、対象の隣接要素の右端を超えた瞬間に入れ替える
-                                    if (paneCenterX <= sibRect.right) {
+                                    const sibCenterX = sibRect.left + sibRect.width / 2;
+                                    // 移動中の色領域の「左端が中心に重なる」または「中心が右端を超える」場合に入れ替える
+                                    if (paneRect.left <= sibCenterX || paneCenterX <= sibRect.right) {
                                         container.insertBefore(panePlaceholder, sib);
                                         this.updateBackground();
                                         break;
@@ -2026,7 +2034,16 @@
                 
                 // 画面上の実際の左右の位置（getBoundingClientRect().left）でソートし、ドラッグ中も見た目の並び順を完全に一致させる
                 paneElements.sort((a, b) => {
-                    return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
+                    const getLeft = (el) => {
+                        if (el.style.position === 'absolute') {
+                            const placeholder = this.dom.colorPanes.querySelector('.pane-placeholder');
+                            if (placeholder) {
+                                return placeholder.getBoundingClientRect().left;
+                            }
+                        }
+                        return el.getBoundingClientRect().left;
+                    };
+                    return getLeft(a) - getLeft(b);
                 });
 
                 const hexes = [];
