@@ -368,6 +368,17 @@
                 </div>
             </div>
 
+            <!-- 色覚多様性シミュレーター -->
+            <div>
+                <label id="txt-vision-mode" class="block text-xs font-semibold uppercase tracking-wider opacity-70 mb-2">色覚多様性シミュレーター</label>
+                <select id="vision-mode-select" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 transition-colors cursor-pointer">
+                    <option id="opt-vision-normal" value="normal">通常の見え方</option>
+                    <option id="opt-vision-protan" value="protanopia">1型2色覚 (赤不全)</option>
+                    <option id="opt-vision-deuter" value="deuteranopia">2型2色覚 (緑不全)</option>
+                    <option id="opt-vision-tritan" value="tritanopia">3型2色覚 (青不全)</option>
+                </select>
+            </div>
+
             <!-- ストック機能 -->
             <div>
                 <label id="txt-stock-list" class="block text-xs font-semibold uppercase tracking-wider opacity-70 mb-2">ストック一覧 (最大20個)</label>
@@ -378,22 +389,23 @@
         </div>
         </div>
 
-        <!-- アクションボタン群 (機能拡張) -->
+        <!-- アクションボタン群 (統合ドロップダウン & 共有機能) -->
         <div class="mt-2 space-y-2 pt-3 border-t border-white/10 flex-shrink-0 px-6">
-            <div class="grid grid-cols-2 gap-2">
-                <button id="copy-current-css-btn" style="background-color: rgba(59, 130, 246, 0.8); border-color: rgba(59, 130, 246, 0.3);" class="py-2.5 hover:opacity-95 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
-                    CSSコピー
-                </button>
-                <button id="copy-tailwind-btn" style="background-color: rgba(59, 130, 246, 0.8); border-color: rgba(59, 130, 246, 0.3);" class="py-2.5 hover:opacity-95 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
-                    Tailwindコピー
-                </button>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <button id="export-current-json-btn" class="py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
-                    JSON出力
-                </button>
-                <button id="export-csv-btn" class="py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-[11px] font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
-                    CSV出力
+            <div class="flex gap-2">
+                <select id="export-share-select" class="flex-1 bg-black/40 border border-white/20 rounded-xl p-2 text-white text-xs outline-none focus:border-indigo-500 transition-colors cursor-pointer">
+                    <option id="opt-css" value="css">CSS変数コピー</option>
+                    <option id="opt-tailwind" value="tailwind">Tailwind設定コピー</option>
+                    <option id="opt-scss" value="scss">SCSS / Less変数コピー</option>
+                    <option id="opt-swift" value="swift">iOS / Swiftコピー</option>
+                    <option id="opt-android" value="android">Android / XMLコピー</option>
+                    <option id="opt-flutter" value="flutter">Flutter / Dartコピー</option>
+                    <option id="opt-shader" value="shader">HLSL / GLSLコピー</option>
+                    <option id="opt-url" value="url" selected>共有URLコピー</option>
+                    <option id="opt-json" value="json">JSONファイル出力</option>
+                    <option id="opt-csv" value="csv">CSVファイル出力</option>
+                </select>
+                <button id="execute-export-btn" style="background-color: #3B82F6;" class="px-4 py-2 hover:opacity-95 rounded-xl text-xs font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center justify-center gap-1">
+                    <span id="txt-execute">実行</span>
                 </button>
             </div>
         </div>
@@ -953,7 +965,7 @@
                 this.bindEvents();
                 this.initCustomScrollbar();
                 
-                if (!this.loadState()) {
+                if (!this.loadStateFromUrl() && !this.loadState()) {
                     this.updateSubModes();
                     this.generateNewPalette(false);
                 }
@@ -1006,10 +1018,9 @@
                     redoBtn: document.getElementById('redo-btn'),
                     saveStockBtn: document.getElementById('save-stock-btn'),
                     stockList: document.getElementById('stock-list'),
-                    copyCssBtn: document.getElementById('copy-current-css-btn'),
-                    copyTailwindBtn: document.getElementById('copy-tailwind-btn'),
-                    exportJsonBtn: document.getElementById('export-current-json-btn'),
-                    exportCsvBtn: document.getElementById('export-csv-btn'),
+                    visionModeSelect: document.getElementById('vision-mode-select'),
+                    exportShareSelect: document.getElementById('export-share-select'),
+                    executeExportBtn: document.getElementById('execute-export-btn'),
                     helpBtn: document.getElementById('help-btn'),
                     helpModal: document.getElementById('help-modal'),
                     toast: document.getElementById('toast'),
@@ -1026,9 +1037,16 @@
                 this.translations = {
                     ja: {
                         editScreen: '編集画面',
+                        execute: '実行',
                         copiedHex: 'カラーコードをコピーしました！',
                         copiedCss: 'CSS変数をコピーしました！',
                         copiedTailwind: 'Tailwind設定をコピーしました！',
+                        copiedScss: 'SCSS/Less変数をコピーしました！',
+                        copiedSwift: 'iOS/Swiftコードをコピーしました！',
+                        copiedAndroid: 'Android/XMLをコピーしました！',
+                        copiedFlutter: 'Flutter/Dartコードをコピーしました！',
+                        copiedShader: 'HLSL/GLSLシェーダーコードをコピーしました！',
+                        copiedUrl: '共有URLをコピーしました！',
                         colorCount: '色数',
                         globalAdjustment: '調整',
                         globalHueLabel: '色相調整',
@@ -1037,13 +1055,28 @@
                         colorCountUnit: '色',
                         paletteCategory: '配色カテゴリ',
                         displayMode: '表示モード',
+                        visionModeLabel: '色覚多様性シミュレーター',
                         gradient: 'グラデーション',
                         split: 'きっぱり分ける',
                         stockList: 'ストック一覧 (最大20個)',
-                        copyCss: 'CSSコピー',
-                        copyTailwind: 'Tailwindコピー',
-                        exportJson: 'JSON出力',
-                        exportCsv: 'CSV出力',
+                        exportOptions: {
+                            css: 'CSS変数コピー',
+                            tailwind: 'Tailwind設定コピー',
+                            scss: 'SCSS / Less変数コピー',
+                            swift: 'iOS / Swiftコピー',
+                            android: 'Android / XMLコピー',
+                            flutter: 'Flutter / Dartコピー',
+                            shader: 'HLSL / GLSLコピー',
+                            url: '共有URLコピー',
+                            json: 'JSONファイル出力',
+                            csv: 'CSVファイル出力'
+                        },
+                        visionOptions: {
+                            normal: '通常の見え方',
+                            protanopia: '1型2色覚 (赤不全)',
+                            deuteranopia: '2型2色覚 (緑不全)',
+                            tritanopia: '3型2色覚 (青不全)'
+                        },
                         resetWidths: '幅をリセット',
                         save: '保存',
                         generate: '生成',
@@ -1121,10 +1154,36 @@
                     },
                     en: {
                         editScreen: 'Edit Panel',
+                        execute: 'Execute',
                         copiedHex: 'Copied to clipboard!',
                         copiedCss: 'CSS variables copied!',
                         copiedTailwind: 'Tailwind config copied!',
+                        copiedScss: 'SCSS/Less variables copied!',
+                        copiedSwift: 'iOS/Swift code copied!',
+                        copiedAndroid: 'Android/XML copied!',
+                        copiedFlutter: 'Flutter/Dart code copied!',
+                        copiedShader: 'HLSL/GLSL shader code copied!',
+                        copiedUrl: 'Share URL copied!',
                         colorCount: 'Colors',
+                        visionModeLabel: 'Color Vision Deficiency Simulator',
+                        exportOptions: {
+                            css: 'Copy CSS Variables',
+                            tailwind: 'Copy Tailwind Config',
+                            scss: 'Copy SCSS / Less',
+                            swift: 'Copy iOS / Swift',
+                            android: 'Copy Android / XML',
+                            flutter: 'Copy Flutter / Dart',
+                            shader: 'Copy HLSL / GLSL',
+                            url: 'Copy Share URL',
+                            json: 'Export JSON',
+                            csv: 'Export CSV'
+                        },
+                        visionOptions: {
+                            normal: 'Normal Vision',
+                            protanopia: 'Protanopia (Red-Blind)',
+                            deuteranopia: 'Deuteranopia (Green-Blind)',
+                            tritanopia: 'Tritanopia (Blue-Blind)'
+                        },
                         globalAdjustment: 'Adjustment',
                         globalHueLabel: 'Hue Adjustment',
                         globalSatLabel: 'Chroma Adjustment',
@@ -1339,11 +1398,35 @@
 
                 this.dom.saveStockBtn.addEventListener('click', () => this.saveStock());
                 
-                // コピー & エクスポート
-                this.dom.copyCssBtn.addEventListener('click', () => this.copyCss());
-                this.dom.copyTailwindBtn.addEventListener('click', () => this.copyTailwind());
-                this.dom.exportJsonBtn.addEventListener('click', () => this.exportJson());
-                this.dom.exportCsvBtn.addEventListener('click', () => this.exportCsv());
+                // 色覚多様性シミュレーターの変更イベント
+                if (this.dom.visionModeSelect) {
+                    this.dom.visionModeSelect.addEventListener('change', () => {
+                        this.renderPanes();
+                    });
+                }
+
+                if (this.dom.exportShareSelect) {
+                    this.dom.exportShareSelect.addEventListener('change', () => {
+                        this.saveState();
+                    });
+                }
+
+                // 統合ドロップダウンの実行ボタンイベント
+                if (this.dom.executeExportBtn) {
+                    this.dom.executeExportBtn.addEventListener('click', () => {
+                        const val = this.dom.exportShareSelect.value;
+                        if (val === 'css') this.copyCss();
+                        else if (val === 'tailwind') this.copyTailwind();
+                        else if (val === 'scss') this.copyScss();
+                        else if (val === 'swift') this.copySwift();
+                        else if (val === 'android') this.copyAndroid();
+                        else if (val === 'flutter') this.copyFlutter();
+                        else if (val === 'shader') this.copyShader();
+                        else if (val === 'url') this.copyShareUrl();
+                        else if (val === 'json') this.exportJson();
+                        else if (val === 'csv') this.exportCsv();
+                    });
+                }
 
                 this.dom.undoBtn.addEventListener('click', () => this.undo());
                 this.dom.redoBtn.addEventListener('click', () => this.redo());
@@ -1762,7 +1845,8 @@
                     // ペインのインデックスをデータ属性として付与
                     pane.dataset.colorIndex = index;
 
-                    const textColor = ColorMath.getAccessibleTextColor(colorObj.rgb[0], colorObj.rgb[1], colorObj.rgb[2]);
+                    const displayRgb = this.getSimulatedRgb(colorObj.rgb);
+                    const textColor = ColorMath.getAccessibleTextColor(displayRgb[0], displayRgb[1], displayRgb[2]);
                     pane.style.color = textColor;
 
                     // --- Pointer Events によるリアルタイムドラッグ＆ドロップ並び替え ---
@@ -1931,7 +2015,8 @@
                     // --- カラーコード入力欄 ---
                     const input = document.createElement('input');
                     input.type = 'text';
-                    input.value = colorObj.hex;
+                    const displayRgbForHex = this.getSimulatedRgb(colorObj.rgb);
+                    input.value = ColorMath.rgbToHex(displayRgbForHex[0], displayRgbForHex[1], displayRgbForHex[2]);
                     input.maxLength = 7;
                     input.ariaLabel = 'カラーコードを編集';
                     input.className = `bg-transparent border-none outline-none text-center color-text font-bold tracking-wider focus:opacity-100 drop-shadow-md pb-0 md:pb-0 w-full uppercase truncate px-0.5 md:px-1`;
@@ -2163,14 +2248,16 @@
                 paneElements.forEach(paneEl => {
                     const idx = parseInt(paneEl.dataset.colorIndex);
                     if (!isNaN(idx) && this.currentColors[idx]) {
-                        hexes.push(this.currentColors[idx].hex);
+                        const simRgb = this.getSimulatedRgb(this.currentColors[idx].rgb);
+                        hexes.push(ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]));
                         ratios.push(this.currentColors[idx].widthRatio !== undefined ? this.currentColors[idx].widthRatio : 1);
                     }
                 });
 
                 if (hexes.length === 0) {
                     this.currentColors.forEach(c => {
-                        hexes.push(c.hex);
+                        const simRgb = this.getSimulatedRgb(c.rgb);
+                        hexes.push(ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]));
                         ratios.push(c.widthRatio !== undefined ? c.widthRatio : 1);
                     });
                 }
@@ -2259,7 +2346,8 @@
                     hueStep: this.dom.hueStepInput.value,
                     satStep: this.dom.satStepInput.value,
                     litStep: this.dom.litStepInput.value,
-                    currentLang: this.currentLang
+                    currentLang: this.currentLang,
+                    exportShareSelect: this.dom.exportShareSelect ? this.dom.exportShareSelect.value : 'url'
                 };
                 localStorage.setItem(CONFIG.STATE_STORAGE_KEY, JSON.stringify(state));
             }
@@ -2312,6 +2400,11 @@
                     if (state.litStep !== undefined) {
                         this.dom.litStepSlider.value = state.litStep;
                         this.dom.litStepInput.value = state.litStep;
+                    }
+                    if (state.exportShareSelect && this.dom.exportShareSelect) {
+                        this.dom.exportShareSelect.value = state.exportShareSelect;
+                    } else if (this.dom.exportShareSelect) {
+                        this.dom.exportShareSelect.value = 'url'; // 初回などのデフォルトをURL共有に設定
                     }
 
                     if (state.currentColors && state.currentColors.length > 0) {
@@ -2466,18 +2559,40 @@
                 const t = this.translations[this.currentLang];
                 document.getElementById('txt-edit-screen').textContent = t.editScreen;
                 document.getElementById('txt-color-count-label').textContent = t.colorCount;
+                document.getElementById('txt-execute').textContent = t.execute;
                 document.getElementById('txt-global-adjustment').textContent = t.globalAdjustment;
+
+                // エクスポート・共有プルダウンの多言語化
+                const eo = t.exportOptions;
+                if (eo) {
+                    document.getElementById('opt-css').textContent = eo.css;
+                    document.getElementById('opt-tailwind').textContent = eo.tailwind;
+                    document.getElementById('opt-scss').textContent = eo.scss;
+                    document.getElementById('opt-swift').textContent = eo.swift;
+                    document.getElementById('opt-android').textContent = eo.android;
+                    document.getElementById('opt-flutter').textContent = eo.flutter;
+                    document.getElementById('opt-shader').textContent = eo.shader;
+                    document.getElementById('opt-url').textContent = eo.url;
+                    document.getElementById('opt-json').textContent = eo.json;
+                    document.getElementById('opt-csv').textContent = eo.csv;
+                }
+
+                // 色覚シミュレータープルダウンの多言語化
+                const vo = t.visionOptions;
+                if (vo) {
+                    document.getElementById('opt-vision-normal').textContent = vo.normal;
+                    document.getElementById('opt-vision-protan').textContent = vo.protanopia;
+                    document.getElementById('opt-vision-deuter').textContent = vo.deuteranopia;
+                    document.getElementById('opt-vision-tritan').textContent = vo.tritanopia;
+                }
                 document.getElementById('txt-global-hue-label').textContent = t.globalHueLabel;
                 document.getElementById('txt-global-sat-label').textContent = t.globalSatLabel;
                 document.getElementById('txt-global-lit-label').textContent = t.globalLitLabel;
                 document.getElementById('color-count-value').textContent = this.getColorCountText(this.dom.colorCountSlider.value);
                 document.getElementById('txt-palette-category').textContent = t.paletteCategory;
                 document.getElementById('txt-display-mode').textContent = t.displayMode;
+                document.getElementById('txt-vision-mode').textContent = t.visionModeLabel;
                 document.getElementById('txt-stock-list').textContent = t.stockList;
-                document.getElementById('copy-current-css-btn').textContent = t.copyCss;
-                document.getElementById('copy-tailwind-btn').textContent = t.copyTailwind;
-                document.getElementById('export-current-json-btn').textContent = t.exportJson;
-                document.getElementById('export-csv-btn').textContent = t.exportCsv;
                 document.getElementById('txt-reset-widths').textContent = t.resetWidths;
                 document.getElementById('txt-save').textContent = t.save;
                 document.getElementById('txt-generate').textContent = t.generate;
@@ -2811,6 +2926,47 @@
                 this.copyToClipboard(tailwindText, 'tailwind');
             }
 
+            // SCSS / Less 変数コピー
+            copyScss() {
+                const vars = this.currentColors.map((c, i) => `$color-${i + 1}: ${c.hex};`).join('\n');
+                this.copyToClipboard(vars, 'scss');
+            }
+
+            // iOS / Swift (UIColor) コピー
+            copySwift() {
+                const swiftText = this.currentColors.map((c, i) => {
+                    const r = c.rgb[0] / 255, g = c.rgb[1] / 255, b = c.rgb[2] / 255;
+                    return `let color${i + 1} = UIColor(red: ${r.toFixed(3)}, green: ${g.toFixed(3)}, blue: ${b.toFixed(3)}, alpha: 1.0) // ${c.hex}`;
+                }).join('\n');
+                this.copyToClipboard(swiftText, 'swift');
+            }
+
+            // Android / XML (colors.xml) コピー
+            copyAndroid() {
+                const androidText = `<resources>\n` + this.currentColors.map((c, i) => `    <color name="palette_color_${i + 1}">${c.hex}</color>`).join('\n') + `\n</resources>`;
+                this.copyToClipboard(androidText, 'android');
+            }
+
+            // Flutter / Dart コピー
+            copyFlutter() {
+                const flutterText = this.currentColors.map((c, i) => {
+                    const hexClean = c.hex.replace('#', '');
+                    return `static const Color color${i + 1} = Color(0xFF${hexClean});`;
+                }).join('\n');
+                this.copyToClipboard(flutterText, 'flutter');
+            }
+
+            // HLSL / GLSL (ゲーム・シェーダー開発向け) コピー
+            copyShader() {
+                const shaderText = this.currentColors.map((c, i) => {
+                    const r = (c.rgb[0] / 255).toFixed(3);
+                    const g = (c.rgb[1] / 255).toFixed(3);
+                    const b = (c.rgb[2] / 255).toFixed(3);
+                    return `static const float3 COLOR_${i + 1} = float3(${r}, ${g}, ${b}); // ${c.hex}`;
+                }).join('\n');
+                this.copyToClipboard(shaderText, 'shader');
+            }
+
             // JSON エクスポート
             exportJson() {
                 const data = {
@@ -2842,6 +2998,108 @@
                 URL.revokeObjectURL(url);
             }
 
+            // 色覚多様性シミュレーションを適用したRGBを取得するメソッド
+            getSimulatedRgb(rgb) {
+                const mode = this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal';
+                if (mode === 'normal') return rgb;
+
+                let r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255;
+                let sr = r, sg = g, sb = b;
+
+                if (mode === 'protanopia') { // 1型
+                    sr = 0.56667 * r + 0.43333 * g + 0.0 * b;
+                    sg = 0.55833 * r + 0.44167 * g + 0.0 * b;
+                    sb = 0.0 * r + 0.24167 * g + 0.75833 * b;
+                } else if (mode === 'deuteranopia') { // 2型
+                    sr = 0.625 * r + 0.375 * g + 0.0 * b;
+                    sg = 0.7 * r + 0.3 * g + 0.0 * b;
+                    sb = 0.0 * r + 0.3 * g + 0.7 * b;
+                } else if (mode === 'tritanopia') { // 3型
+                    sr = 0.95 * r + 0.05 * g + 0.0 * b;
+                    sg = 0.0 * r + 0.43333 * g + 0.56667 * b;
+                    sb = 0.0 * r + 0.475 * g + 0.525 * b;
+                }
+
+                return [
+                    Math.round(Math.min(1, Math.max(0, sr)) * 255),
+                    Math.round(Math.min(1, Math.max(0, sg)) * 255),
+                    Math.round(Math.min(1, Math.max(0, sb)) * 255)
+                ];
+            }
+
+            copyShareUrl() {
+                const state = {
+                    colors: this.currentColors.map(c => ({ hex: c.hex, widthRatio: c.widthRatio })),
+                    mainMode: this.dom.mainMode.value,
+                    subMode: this.dom.subMode.value,
+                    colorCount: this.dom.colorCountSlider.value,
+                    isSplitMode: this.isSplitMode,
+                    globalHue: this.dom.globalHueInput.value,
+                    globalSat: this.dom.globalSatInput.value,
+                    globalLit: this.dom.globalLitInput.value
+                };
+                const jsonStr = JSON.stringify(state);
+                const encoded = btoa(encodeURIComponent(jsonStr));
+                const shareUrl = `${window.location.origin}${window.location.pathname}#palette=${encoded}`;
+                
+                this.copyToClipboard(shareUrl, 'url');
+            }
+
+            loadStateFromUrl() {
+                try {
+                    const hash = window.location.hash;
+                    if (!hash.includes('palette=')) return false;
+                    const encoded = hash.split('palette=')[1];
+                    const jsonStr = decodeURIComponent(atob(encoded));
+                    const state = JSON.parse(jsonStr);
+
+                    if (state.mainMode) this.dom.mainMode.value = state.mainMode;
+                    if (state.colorCount) {
+                        this.dom.colorCountSlider.value = state.colorCount;
+                        this.dom.colorCountValue.textContent = this.getColorCountText(state.colorCount);
+                    }
+                    this.updateSubModes();
+                    if (state.subMode) this.dom.subMode.value = state.subMode;
+                    if (state.isSplitMode !== undefined) this.setDisplayMode(state.isSplitMode, false);
+                    if (state.globalHue !== undefined) {
+                        this.dom.globalHueSlider.value = state.globalHue;
+                        this.dom.globalHueInput.value = state.globalHue;
+                    }
+                    if (state.globalSat !== undefined) {
+                        this.dom.globalSatSlider.value = state.globalSat;
+                        this.dom.globalSatInput.value = state.globalSat;
+                    }
+                    if (state.globalLit !== undefined) {
+                        this.dom.globalLitSlider.value = state.globalLit;
+                        this.dom.globalLitInput.value = state.globalLit;
+                    }
+
+                    if (state.colors && state.colors.length > 0) {
+                        this.currentColors = state.colors.map(sc => {
+                            let h = sc.hex.replace(/^#/, '');
+                            if (h.length === 3) h = h.split('').map(c => c + c).join('');
+                            const num = parseInt(h, 16);
+                            const rgb = [num >> 16, (num >> 8) & 255, num & 255];
+                            const oklch = ColorMath.rgbToOklch(rgb[0], rgb[1], rgb[2]);
+                            return {
+                                rgb,
+                                hex: sc.hex,
+                                oklch,
+                                originalOklch: { ...oklch },
+                                widthRatio: sc.widthRatio !== undefined ? sc.widthRatio : 1,
+                                locked: false
+                            };
+                        });
+                        this.renderPanes();
+                        this.pushHistory(this.currentColors);
+                        return true;
+                    }
+                } catch (e) {
+                    console.error('Failed to load state from URL', e);
+                }
+                return false;
+            }
+
             async copyToClipboard(text, messageType = 'hex') {
                 try {
                     await navigator.clipboard.writeText(text);
@@ -2849,6 +3107,12 @@
                     let message = t.copiedHex;
                     if (messageType === 'css') message = t.copiedCss;
                     if (messageType === 'tailwind') message = t.copiedTailwind;
+                    if (messageType === 'scss') message = t.copiedScss;
+                    if (messageType === 'swift') message = t.copiedSwift;
+                    if (messageType === 'android') message = t.copiedAndroid;
+                    if (messageType === 'flutter') message = t.copiedFlutter;
+                    if (messageType === 'shader') message = t.copiedShader;
+                    if (messageType === 'url') message = t.copiedUrl;
 
                     this.dom.toastMsg.textContent = message;
                     this.dom.toast.classList.remove('toast-animate');
