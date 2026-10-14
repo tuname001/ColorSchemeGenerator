@@ -1642,96 +1642,123 @@
                     pane.style.flexShrink = '0';
                     pane.style.flexGrow = '0';
 
-                    pane.draggable = true; // ドラッグ並び替え用
+                    // ペインのインデックスをデータ属性として付与
+                    pane.dataset.colorIndex = index;
 
                     const textColor = ColorMath.getAccessibleTextColor(colorObj.rgb[0], colorObj.rgb[1], colorObj.rgb[2]);
                     pane.style.color = textColor;
 
-                    // --- ドラッグ＆ドロップによる並び替えイベント (PC用) ---
-                    pane.addEventListener('dragstart', (e) => {
-                        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-                            e.preventDefault();
-                            return;
-                        }
-                        if (e.target.tagName === 'INPUT' || e.target.closest('input')) {
-                            e.preventDefault();
-                            return;
-                        }
-                        e.dataTransfer.setData('text/plain', index);
-                        pane.classList.add('opacity-40');
-                    });
-                    pane.addEventListener('dragend', () => {
-                        pane.classList.remove('opacity-40');
-                    });
-                    pane.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                    });
-                    pane.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
-                        const toIdx = index;
-                        if (fromIdx !== toIdx) {
-                            const moved = this.currentColors.splice(fromIdx, 1)[0];
-                            this.currentColors.splice(toIdx, 0, moved);
-                            this.renderPanes();
-                            this.pushHistory(this.currentColors);
-                        }
-                    });
+                    // --- Pointer Events によるリアルタイムドラッグ＆ドロップ並び替え ---
+                    let isDraggingPane = false;
+                    let startX = 0;
+                    let startPaneLeft = 0;
+                    let panePlaceholder = null;
 
-                    // --- スマホ用：タッチスワイプによる色領域の移動（並び替え）イベント ---
-                    let paneTouchStartX = 0;
-                    let paneTouchStartY = 0;
-                    pane.addEventListener('touchstart', (e) => {
-                        // リサイズ操作中であれば、ペイン移動の判定を絶対に発火させない
-                        if (this.isResizing) {
-                            return;
-                        }
+                    const handlePanePointerDown = (e) => {
+                        if (this.isResizing) return;
                         if (e.target.closest('.resize-handle') || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
                             return;
                         }
+                        if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+                        isDraggingPane = true;
+                        this.draggingPaneIndex = index; // 追加: 現在ドラッグ中のインデックスを保持
+                        pane.setPointerCapture(e.pointerId);
+
                         const rect = pane.getBoundingClientRect();
-                        if (e.touches[0].clientX > rect.right - 20) {
-                            return;
-                        }
-                        if (rect.width < 70) {
-                            const relativeX = e.touches[0].clientX - rect.left;
-                            if (relativeX < 10 || relativeX > rect.width - 10) {
-                                return;
+                        const containerRect = this.dom.colorPanes.getBoundingClientRect();
+                        startX = e.clientX;
+                        startPaneLeft = rect.left - containerRect.left;
+
+                        // プレースホルダーを作成して元の位置に挿入
+                        panePlaceholder = document.createElement('div');
+                        panePlaceholder.style.width = `${rect.width}px`;
+                        panePlaceholder.style.height = '100%';
+                        panePlaceholder.style.flexShrink = '0';
+                        panePlaceholder.style.flexGrow = '0';
+                        pane.parentNode.insertBefore(panePlaceholder, pane);
+
+                        // ペインを絶対配置にして追従させる
+                        pane.style.position = 'absolute';
+                        pane.style.left = `${startPaneLeft}px`;
+                        pane.style.top = `${rect.top - containerRect.top}px`;
+                        pane.style.width = `${rect.width}px`;
+                        pane.style.height = `${rect.height}px`;
+                        pane.style.zIndex = '9999';
+                        pane.classList.add('opacity-90', 'shadow-2xl', 'scale-[1.02]', 'bg-gray-800');
+                        e.preventDefault();
+                    };
+
+                    pane.addEventListener('pointerdown', handlePanePointerDown);
+
+                    pane.addEventListener('pointermove', (e) => {
+                        if (!isDraggingPane) return;
+                        const deltaX = e.clientX - startX;
+                        pane.style.left = `${startPaneLeft + deltaX}px`;
+
+                        const paneRect = pane.getBoundingClientRect();
+                        const paneCenterX = paneRect.left + paneRect.width / 2;
+                        const container = this.dom.colorPanes;
+                        const children = Array.from(container.children).filter(el => el !== pane && el !== panePlaceholder);
+                        const allChildren = Array.from(container.children);
+                        const placeholderIdx = allChildren.indexOf(panePlaceholder);
+
+                        // 左右の隣接要素と中心座標を比較してリアルタイムに入れ替え
+                        for (let sib of children) {
+                            const sibRect = sib.getBoundingClientRect();
+                            const sibCenterX = sibRect.left + sibRect.width / 2;
+                            const sibIdx = allChildren.indexOf(sib);
+
+                            if (paneCenterX > sibCenterX && sibIdx > placeholderIdx) {
+                                container.insertBefore(panePlaceholder, sib.nextSibling);
+                                this.updateBackground();
+                                break;
+                            } else if (paneCenterX < sibCenterX && sibIdx < placeholderIdx) {
+                                container.insertBefore(panePlaceholder, sib);
+                                this.updateBackground();
+                                break;
                             }
                         }
-                        paneTouchStartX = e.touches[0].clientX;
-                        paneTouchStartY = e.touches[0].clientY;
-                    }, { passive: true });
+                    });
 
-                    pane.addEventListener('touchend', (e) => {
-                        if (e.target.closest('.resize-handle') || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
-                            return;
+                    const endPaneDrag = (e) => {
+                        if (!isDraggingPane) return;
+                        isDraggingPane = false;
+                        this.draggingPaneIndex = undefined; // 追加: ドラッグ終了時にリセット
+                        pane.releasePointerCapture(e.pointerId);
+
+                        if (panePlaceholder && panePlaceholder.parentNode) {
+                            panePlaceholder.parentNode.insertBefore(pane, panePlaceholder);
+                            panePlaceholder.remove();
                         }
-                        const endX = e.changedTouches[0].clientX;
-                        const endY = e.changedTouches[0].clientY;
-                        const deltaX = endX - paneTouchStartX;
-                        const deltaY = endY - paneTouchStartY;
 
-                        // 横方向へのスワイプが一定以上（50px超）の場合、指を離した位置のペインへ直接移動
-                        if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
-                            const paneElements = Array.from(this.dom.colorPanes.children);
-                            let targetIndex = index;
+                        pane.style.position = '';
+                        pane.style.left = '';
+                        pane.style.top = '';
+                        pane.style.width = '';
+                        pane.style.height = '';
+                        pane.style.zIndex = '';
+                        pane.classList.remove('opacity-90', 'shadow-2xl', 'scale-[1.02]', 'bg-gray-800');
 
-                            paneElements.forEach((pEl, pIdx) => {
-                                const rect = pEl.getBoundingClientRect();
-                                if (endX >= rect.left && endX <= rect.right) {
-                                    targetIndex = pIdx;
-                                }
-                            });
-
-                            if (targetIndex !== index) {
-                                const moved = this.currentColors.splice(index, 1)[0];
-                                this.currentColors.splice(targetIndex, 0, moved);
-                                this.renderPanes();
-                                this.pushHistory(this.currentColors);
+                        // DOMの並び順に合わせてデータ配列（this.currentColors）を更新
+                        const newColors = [];
+                        Array.from(this.dom.colorPanes.children).forEach(el => {
+                            const origIdx = parseInt(el.dataset.colorIndex);
+                            if (!isNaN(origIdx) && this.currentColors[origIdx]) {
+                                newColors.push(this.currentColors[origIdx]);
                             }
+                        });
+
+                        if (newColors.length === this.currentColors.length) {
+                            this.currentColors = newColors;
                         }
-                    }, { passive: true });
+
+                        this.renderPanes();
+                        this.pushHistory(this.currentColors);
+                    };
+
+                    pane.addEventListener('pointerup', endPaneDrag);
+                    pane.addEventListener('pointercancel', endPaneDrag);
 
                     // --- ロックボタン（カラーコードの少し上） ---
                     const lockBtn = document.createElement('button');
@@ -1972,113 +1999,98 @@
             }
 
             updateBackground() {
-                const panes = Array.from(this.dom.colorPanes.children);
-                const hexes = this.currentColors.map(c => c.hex);
+                const paneElements = Array.from(this.dom.colorPanes.children).filter(el => el.dataset.colorIndex !== undefined);
+                
+                // 画面上の実際の左右の位置（getBoundingClientRect().left）でソートし、ドラッグ中も見た目の並び順を完全に一致させる
+                paneElements.sort((a, b) => {
+                    return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
+                });
 
-                // 実際のDOM要素のピクセル幅（clientWidth）が取得できる場合は、それをもとに正確に背景を計算する
-                if (panes.length === hexes.length && this.dom.colorPanes.clientWidth > 0) {
-                    const totalWidth = this.dom.colorPanes.clientWidth;
-                    let currentPercent = 0;
-                    const stops = [];
+                const hexes = [];
+                const ratios = [];
 
-                    panes.forEach((pane, i) => {
-                        const paneWidth = pane.clientWidth;
-                        const startPct = currentPercent;
-                        const endPct = currentPercent + (paneWidth / totalWidth) * 100;
+                paneElements.forEach(paneEl => {
+                    const idx = parseInt(paneEl.dataset.colorIndex);
+                    if (!isNaN(idx) && this.currentColors[idx]) {
+                        hexes.push(this.currentColors[idx].hex);
+                        ratios.push(this.currentColors[idx].widthRatio !== undefined ? this.currentColors[idx].widthRatio : 1);
+                    }
+                });
 
-                        if (this.isSplitMode) {
-                            // きっぱり分けるモード：各領域の実際の描画幅に合わせる
-                            stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
-                        } else {
-                            // グラデーションモード：各領域の実際の中央位置で滑らかに繋ぐ
-                            const midPct = startPct + ((endPct - startPct) / 2);
-                            if (i === 0) {
-                                stops.push(`${hexes[i]} ${startPct}%`);
-                                stops.push(`${hexes[i]} ${midPct}%`);
-                            } else if (i === panes.length - 1) {
-                                stops.push(`${hexes[i]} ${midPct}%`);
-                                stops.push(`${hexes[i]} 100%`);
-                            } else {
-                                stops.push(`${hexes[i]} ${midPct}%`);
-                            }
-                        }
-                        currentPercent = endPct;
+                if (hexes.length === 0) {
+                    this.currentColors.forEach(c => {
+                        hexes.push(c.hex);
+                        ratios.push(c.widthRatio !== undefined ? c.widthRatio : 1);
                     });
-
-                    this.dom.mainContainer.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
-                } else {
-                    // フォールバック（DOMがまだ描画されていない初期状態など）
-                    const ratios = this.currentColors.map(c => c.widthRatio);
-                    const totalRatio = ratios.reduce((sum, r) => sum + r, 0);
-                    let currentPercent = 0;
-                    const stops = [];
-
-                    ratios.forEach((ratio, i) => {
-                        const percent = (ratio / totalRatio) * 100;
-                        const startPct = currentPercent;
-                        let endPct = currentPercent + percent;
-                        if (i === ratios.length - 1) endPct = 100; // 最後の要素の終端を厳密に100%に固定
-                        const midPct = startPct + ((endPct - startPct) / 2);
-
-                        if (this.isSplitMode) {
-                            if (i === ratios.length - 1) {
-                                stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} 100%`);
-                            } else {
-                                stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
-                            }
-                        } else {
-                            if (i === 0) {
-                                stops.push(`${hexes[i]} ${startPct}%`);
-                                stops.push(`${hexes[i]} ${midPct}%`);
-                            } else if (i === hexes.length - 1) {
-                                stops.push(`${hexes[i]} ${midPct}%`);
-                                stops.push(`${hexes[i]} 100%`);
-                            } else {
-                                stops.push(`${hexes[i]} ${midPct}%`);
-                            }
-                        }
-                        currentPercent = endPct;
-                    });
-
-                    this.dom.mainContainer.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
                 }
+
+                const totalRatio = ratios.reduce((sum, r) => sum + r, 0) || 1;
+                let currentPercent = 0;
+                const stops = [];
+
+                ratios.forEach((ratio, i) => {
+                    const percent = (ratio / totalRatio) * 100;
+                    const startPct = currentPercent;
+                    let endPct = currentPercent + percent;
+                    if (i === ratios.length - 1) endPct = 100; // 最後の要素の終端を厳密に100%に固定
+                    const midPct = startPct + ((endPct - startPct) / 2);
+
+                    if (this.isSplitMode) {
+                        if (i === ratios.length - 1) {
+                            stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} 100%`);
+                        } else {
+                            stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
+                        }
+                    } else {
+                        if (i === 0) {
+                            stops.push(`${hexes[i]} ${startPct}%`);
+                            stops.push(`${hexes[i]} ${midPct}%`);
+                        } else if (i === hexes.length - 1) {
+                            stops.push(`${hexes[i]} ${midPct}%`);
+                            stops.push(`${hexes[i]} 100%`);
+                        } else {
+                            stops.push(`${hexes[i]} ${midPct}%`);
+                        }
+                    }
+                    currentPercent = endPct;
+                });
+
+                this.dom.mainContainer.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
 
                 // サイドバー内の縦長プレビュー（上から下へ、各色領域のサイズ変化・比率および分割モードを完全に反映）
                 const sidebarPreview = document.getElementById('sidebar-gradient-preview');
                 if (sidebarPreview && hexes.length > 0) {
-                    const ratios = this.currentColors.map(c => c.widthRatio !== undefined ? c.widthRatio : 1);
-                    const totalRatio = ratios.reduce((sum, r) => sum + r, 0) || 1;
-                    let currentPercent = 0;
-                    const stops = [];
+                    let sbCurrentPercent = 0;
+                    const sbStops = [];
 
                     ratios.forEach((ratio, i) => {
                         const percent = (ratio / totalRatio) * 100;
-                        const startPct = currentPercent;
-                        let endPct = currentPercent + percent;
-                        if (i === ratios.length - 1) endPct = 100; // 最後の要素の終端を100.5%に拡張して隙間や色漏れを完全に防止
+                        const startPct = sbCurrentPercent;
+                        let endPct = sbCurrentPercent + percent;
+                        if (i === ratios.length - 1) endPct = 100; // 最後の要素の終端を100%に拡張して隙間や色漏れを完全に防止
                         const midPct = startPct + ((endPct - startPct) / 2);
 
                         if (this.isSplitMode) {
                             if (i === ratios.length - 1) {
-                                stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
+                                sbStops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
                             } else {
-                                stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
+                                sbStops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
                             }
                         } else {
                             if (i === 0) {
-                                stops.push(`${hexes[i]} ${startPct}%`);
-                                stops.push(`${hexes[i]} ${midPct}%`);
+                                sbStops.push(`${hexes[i]} ${startPct}%`);
+                                sbStops.push(`${hexes[i]} ${midPct}%`);
                             } else if (i === hexes.length - 1) {
-                                stops.push(`${hexes[i]} ${midPct}%`);
-                                stops.push(`${hexes[i]} ${endPct}%`);
+                                sbStops.push(`${hexes[i]} ${midPct}%`);
+                                sbStops.push(`${hexes[i]} ${endPct}%`);
                             } else {
-                                stops.push(`${hexes[i]} ${midPct}%`);
+                                sbStops.push(`${hexes[i]} ${midPct}%`);
                             }
                         }
-                        currentPercent = endPct;
+                        sbCurrentPercent = endPct;
                     });
 
-                    sidebarPreview.style.backgroundImage = `linear-gradient(to bottom, ${stops.join(', ')})`;
+                    sidebarPreview.style.backgroundImage = `linear-gradient(to bottom, ${sbStops.join(', ')})`;
                 }
             }
 
@@ -2358,36 +2370,132 @@
 
             renderStocks() {
                 this.dom.stockList.innerHTML = '';
+                this.dom.stockList.style.position = 'relative';
                 this.stocks.forEach((stock, index) => {
                     const item = document.createElement('div');
-                    item.className = 'bg-black/40 border border-white/10 rounded-xl p-3 space-y-2 cursor-grab active:cursor-grabbing';
-                    item.draggable = true;
+                    item.className = 'bg-black/40 border border-white/10 rounded-xl p-3 space-y-2 select-none';
+                    item.dataset.stockIndex = index;
 
-                    item.addEventListener('dragstart', (e) => {
-                        if (e.target.tagName === 'INPUT' || e.target.closest('input')) {
-                            e.preventDefault();
+                    let isDragging = false;
+                    let startY = 0;
+                    let lastY = 0; // 追加: 前回のY座標
+                    let startItemTop = 0;
+                    let placeholder = null;
+
+                    const handlePointerDown = (e) => {
+                        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.closest('.stock-preview-container') || e.target.classList.contains('stock-name')) {
                             return;
                         }
-                        e.dataTransfer.setData('text/plain', index);
-                        item.classList.add('opacity-40');
-                    });
-                    item.addEventListener('dragend', () => {
-                        item.classList.remove('opacity-40');
-                    });
-                    item.addEventListener('dragover', (e) => {
+                        if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+                        isDragging = true;
+                        item.setPointerCapture(e.pointerId);
+
+                        const rect = item.getBoundingClientRect();
+                        const initialTop = item.offsetTop;
+                        const initialLeft = item.offsetLeft;
+
+                        startY = e.clientY;
+                        lastY = e.clientY; // 初期化
+                        startItemTop = initialTop;
+
+                        placeholder = document.createElement('div');
+                        placeholder.style.height = `${rect.height}px`;
+                        placeholder.style.marginBottom = window.getComputedStyle(item).marginBottom;
+                        item.parentNode.insertBefore(placeholder, item);
+
+                        item.style.position = 'absolute';
+                        item.style.top = `${initialTop}px`;
+                        item.style.left = `${initialLeft}px`;
+                        item.style.width = `${rect.width}px`;
+                        item.style.zIndex = '9999';
+                        item.classList.add('opacity-90', 'shadow-2xl', 'scale-[1.02]', 'bg-gray-800');
                         e.preventDefault();
-                    });
-                    item.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
-                        const toIdx = index;
-                        if (fromIdx !== toIdx && !isNaN(fromIdx)) {
-                            const moved = this.stocks.splice(fromIdx, 1)[0];
-                            this.stocks.splice(toIdx, 0, moved);
-                            localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(this.stocks));
-                            this.renderStocks();
+                    };
+
+                    item.addEventListener('pointerdown', handlePointerDown);
+
+                    item.addEventListener('pointermove', (e) => {
+                        if (!isDragging) return;
+                        const currentY = e.clientY;
+                        const direction = currentY > lastY ? 'down' : (currentY < lastY ? 'up' : null);
+                        if (currentY !== lastY) {
+                            lastY = currentY;
+                        }
+
+                        const deltaY = currentY - startY;
+                        item.style.top = `${startItemTop + deltaY}px`;
+
+                        const itemRect = item.getBoundingClientRect();
+                        const itemCenterY = itemRect.top + itemRect.height / 2;
+                        const container = this.dom.stockList;
+                        const children = Array.from(container.children).filter(el => el !== item && el !== placeholder);
+                        const allChildren = Array.from(container.children);
+                        const placeholderIdx = allChildren.indexOf(placeholder);
+
+                        if (direction === 'down') {
+                            // 下方向に移動中：プレースホルダーより下にある要素を上から順にチェック
+                            for (let sib of children) {
+                                const sibIdx = allChildren.indexOf(sib);
+                                if (sibIdx > placeholderIdx) {
+                                    const sibRect = sib.getBoundingClientRect();
+                                    // 移動中のストックの中心が、対象ストックの上辺を超えた瞬間
+                                    if (itemCenterY >= sibRect.top) {
+                                        container.insertBefore(placeholder, sib.nextSibling);
+                                        break;
+                                    }
+                                }
+                            }
+                        } else if (direction === 'up') {
+                            // 上方向に移動中：プレースホルダーより上にある要素を下から順にチェック（逆順）
+                            for (let i = children.length - 1; i >= 0; i--) {
+                                const sib = children[i];
+                                const sibIdx = allChildren.indexOf(sib);
+                                if (sibIdx < placeholderIdx) {
+                                    const sibRect = sib.getBoundingClientRect();
+                                    // 移動中のストックの中心が、対象ストックの下辺を超えた瞬間
+                                    if (itemCenterY <= sibRect.bottom) {
+                                        container.insertBefore(placeholder, sib);
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     });
+
+                    const endDrag = (e) => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        item.releasePointerCapture(e.pointerId);
+
+                        if (placeholder && placeholder.parentNode) {
+                            placeholder.parentNode.insertBefore(item, placeholder);
+                            placeholder.remove();
+                        }
+
+                        item.style.position = '';
+                        item.style.top = '';
+                        item.style.left = '';
+                        item.style.width = '';
+                        item.style.zIndex = '';
+                        item.classList.remove('opacity-90', 'shadow-2xl', 'scale-[1.02]', 'bg-gray-800');
+
+                        const newStocks = [];
+                        Array.from(this.dom.stockList.children).forEach(el => {
+                            const origIdx = parseInt(el.dataset.stockIndex);
+                            if (!isNaN(origIdx) && this.stocks[origIdx]) {
+                                newStocks.push(this.stocks[origIdx]);
+                            }
+                        });
+                        if (newStocks.length === this.stocks.length) {
+                            this.stocks = newStocks;
+                            localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(this.stocks));
+                        }
+                        this.renderStocks();
+                    };
+
+                    item.addEventListener('pointerup', endDrag);
+                    item.addEventListener('pointercancel', endDrag);
 
                     const hexes = stock.colors.map(c => c.hex);
                     const ratios = stock.colors.map(c => c.widthRatio !== undefined ? c.widthRatio : 1);
@@ -2397,6 +2505,9 @@
                     const isSplit = stock.isSplitMode ? true : false;
 
                     item.innerHTML = `
+                        <div class="drag-handle flex justify-center items-center py-1.5 cursor-grab active:cursor-grabbing bg-white/5 hover:bg-white/10 rounded-t-lg -mt-3 -mx-3 mb-2" title="ドラッグして並び替え">
+                            <div class="w-10 h-1 bg-white/30 rounded-full"></div>
+                        </div>
                         <div class="flex justify-between items-center gap-2">
                             <input type="text" value="${stock.name}" class="stock-name bg-transparent text-xs font-semibold text-white border-b border-transparent hover:border-white/30 focus:border-indigo-400 outline-none w-full py-0.5">
                             <div class="flex items-center gap-1">
@@ -2416,12 +2527,6 @@
                             <div class="preview-bar flex h-5 -mx-2 w-[calc(100%+16px)]"></div>
                         </div>
                     `;
-
-                    const nameInput = item.querySelector('.stock-name');
-                    nameInput.addEventListener('mousedown', () => { item.draggable = false; });
-                    nameInput.addEventListener('blur', () => { item.draggable = true; });
-                    nameInput.addEventListener('touchstart', () => { item.draggable = false; }, { passive: true });
-                    nameInput.addEventListener('touchend', () => { item.draggable = true; }, { passive: true });
 
                     const previewBar = item.querySelector('.preview-bar');
                     if (isSplit) {
