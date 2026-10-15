@@ -13,7 +13,7 @@
             overflow: hidden;
             display: flex;
             width: 100vw;
-            height: 100vh;
+            height: 100dvh;
         }
 
         .color-text {
@@ -166,19 +166,7 @@
             width: max-content !important;
             bottom: 3.5rem !important; /* デフォルト（PC等）の位置 */
         }
-        /* スマホ縦画面（幅が狭く、かつ縦長のデバイス）の場合のみ「生成・ランダム・更新」ボタンをさらに上にしっかり移動 */
-        @media (max-width: 768px) and (orientation: portrait) and (hover: none) and (pointer: coarse) {
-            div.responsive-action-buttons {
-                bottom: 8.5rem !important; /* ボタン位置をさらに上に引き上げ */
-            }
-            .color-pane {
-                padding-bottom: 10.5rem !important; /* パディングを縮めて要素を適度に下へ下げる */
-            }
-            #ruler-container {
-                height: 25% !important;     /* 高さをパーセンテージ指定に変更して確実な表示を確保 */
-                z-index: 20 !important;    /* 背面に隠れないよう前面に配置 */
-            }
-        }
+        
         /* 境界線のリサイズハンドル */
         .resize-handle {
             position: absolute;
@@ -2803,8 +2791,7 @@
                 for (let v = 0.5; v < 10.0; v += 0.5) {
                     const tick = document.createElement('div');
                     const isInteger = Number.isInteger(v);
-                    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-                    const height = isTouchDevice ? (isInteger ? '40%' : '35%') : (isInteger ? '16px' : '8px');
+                    const height = isInteger ? '16px' : '8px';
                     const leftPercent = (v / 10) * 100;
                     
                     const colorRgb = this.getColorAtPosition(v / 10);
