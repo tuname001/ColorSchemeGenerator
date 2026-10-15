@@ -15,9 +15,6 @@
             width: 100vw;
             height: 100vh;
         }
-        
-        #main-container {
-        }
 
         .color-text {
             transition: color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1495,13 +1492,32 @@
 
                 // スライダーとインプットの同期処理を抽象化
                 const setupSync = (slider, input, min, max, isFloat) => {
+                    let startVal = input.value;
+
+                    slider.addEventListener('pointerdown', () => {
+                        startVal = input.value;
+                    });
+                    slider.addEventListener('touchstart', () => {
+                        startVal = input.value;
+                    }, { passive: true });
+
                     slider.addEventListener('input', (e) => {
                         input.value = isFloat ? parseFloat(e.target.value).toFixed(2) : e.target.value;
                         this.generateNewPalette(true, false);
                     });
-                    slider.addEventListener('change', (e) => {
-                        this.pushHistory();
-                    });
+
+                    const handleCommit = () => {
+                        const curVal = input.value;
+                        if (curVal !== startVal) {
+                            this.pushHistory();
+                            startVal = curVal;
+                        }
+                    };
+
+                    slider.addEventListener('change', handleCommit);
+                    slider.addEventListener('pointerup', handleCommit);
+                    slider.addEventListener('touchend', handleCommit);
+
                     input.addEventListener('input', (e) => {
                         let converted = this.toHalfWidth(e.target.value);
                         if (e.target.value !== converted) e.target.value = converted;
@@ -1526,13 +1542,32 @@
                 
                 // 全体調整用スライダーの連動を初期化
                 const bindGlobalSync = (slider, input, min, max) => {
+                    let startVal = input.value;
+
+                    slider.addEventListener('pointerdown', () => {
+                        startVal = input.value;
+                    });
+                    slider.addEventListener('touchstart', () => {
+                        startVal = input.value;
+                    }, { passive: true });
+
                     slider.addEventListener('input', (e) => {
                         input.value = e.target.value;
                         this.applyGlobalAdjustmentsAndRender(false);
                     });
-                    slider.addEventListener('change', (e) => {
-                        this.pushHistory();
-                    });
+
+                    const handleCommit = () => {
+                        const curVal = input.value;
+                        if (curVal !== startVal) {
+                            this.pushHistory();
+                            startVal = curVal;
+                        }
+                    };
+
+                    slider.addEventListener('change', handleCommit);
+                    slider.addEventListener('pointerup', handleCommit);
+                    slider.addEventListener('touchend', handleCommit);
+
                     input.addEventListener('input', (e) => {
                         let converted = this.toHalfWidth(e.target.value);
                         if (e.target.value !== converted) e.target.value = converted;
@@ -2594,18 +2629,36 @@
             }
 
             updateBackground() {
-                const paneElements = Array.from(this.dom.colorPanes.children).filter(el => el.dataset.colorIndex !== undefined);
+                const container = this.dom.colorPanes;
+                let orderedColors = [];
+
+                if (this.draggingPaneIndex !== undefined && container) {
+                    const children = Array.from(container.children);
+                    children.forEach(el => {
+                        if (el.classList && el.classList.contains('pane-placeholder')) {
+                            if (this.currentColors[this.draggingPaneIndex]) {
+                                orderedColors.push(this.currentColors[this.draggingPaneIndex]);
+                            }
+                        } else {
+                            const idx = parseInt(el.dataset.colorIndex);
+                            if (!isNaN(idx) && idx !== this.draggingPaneIndex && this.currentColors[idx]) {
+                                orderedColors.push(this.currentColors[idx]);
+                            }
+                        }
+                    });
+                }
+
+                if (orderedColors.length === 0) {
+                    orderedColors = this.currentColors;
+                }
 
                 const hexes = [];
                 const ratios = [];
 
-                paneElements.forEach(paneEl => {
-                    const idx = parseInt(paneEl.dataset.colorIndex);
-                    if (!isNaN(idx) && this.currentColors[idx]) {
-                        const simRgb = this.getSimulatedRgb(this.currentColors[idx].rgb);
-                        hexes.push(ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]));
-                        ratios.push(this.currentColors[idx].widthRatio !== undefined ? this.currentColors[idx].widthRatio : 1);
-                    }
+                orderedColors.forEach(c => {
+                    const simRgb = this.getSimulatedRgb(c.rgb);
+                    hexes.push(ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]));
+                    ratios.push(c.widthRatio !== undefined ? c.widthRatio : 1);
                 });
 
                 if (hexes.length === 0) {
