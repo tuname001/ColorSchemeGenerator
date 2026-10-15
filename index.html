@@ -230,7 +230,7 @@
     <div id="drawer-overlay" class="fixed inset-0 bg-black/60 z-[45] hidden backdrop-blur-sm transition-opacity"></div>
 
     <!-- 編集画面 (サイドバー / モバイルドロワー) -->
-    <aside id="settings-panel" class="absolute inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col py-6 text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out">
+    <aside id="settings-panel" class="absolute inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col py-6 text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out -translate-x-full">
         <!-- リアルタイム縦長グラデーションプレビュー（狭い画面時にサイドバー右縁に追従） -->
         <div id="sidebar-gradient-preview"></div>
 
@@ -1055,6 +1055,15 @@
                 this.touchStartY = 0;
 
                 this.initDOM();
+
+                if (window.innerWidth >= 1201) {
+                    this.dom.settingsPanel.classList.remove('-translate-x-full');
+                } else {
+                    this.dom.drawerOverlay.classList.add('hidden');
+                    const preview = document.getElementById('sidebar-gradient-preview');
+                    if (preview) preview.style.display = 'none';
+                }
+
                 this.bindEvents();
                 this.initCustomScrollbar();
                 
