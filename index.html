@@ -171,11 +171,12 @@
             div.responsive-action-buttons {
                 bottom: 8.5rem !important; /* ボタン位置をさらに上に引き上げ */
             }
-        }
-        /* スマホ縦画面（幅が狭く、かつ縦長）のときのみ、カラーペイン内の要素（ロックボタン・コード・Copy）の位置を下部余白で適度に引き下げ（高くなりすぎを防止） */
-        @media (max-width: 768px) and (orientation: portrait) and (hover: none) and (pointer: coarse) {
             .color-pane {
                 padding-bottom: 10.5rem !important; /* パディングを縮めて要素を適度に下へ下げる */
+            }
+            #ruler-container {
+                height: 25% !important;     /* 高さをパーセンテージ指定に変更して確実な表示を確保 */
+                z-index: 20 !important;    /* 背面に隠れないよう前面に配置 */
             }
         }
         /* 境界線のリサイズハンドル */
@@ -2802,7 +2803,7 @@
                 for (let v = 0.5; v < 10.0; v += 0.5) {
                     const tick = document.createElement('div');
                     const isInteger = Number.isInteger(v);
-                    const height = isInteger ? '16px' : '8px';
+                    tick.className = isInteger ? 'ruler-tick integer' : 'ruler-tick sub';
                     const leftPercent = (v / 10) * 100;
                     
                     const colorRgb = this.getColorAtPosition(v / 10);
