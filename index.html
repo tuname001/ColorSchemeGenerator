@@ -97,7 +97,7 @@
             }
             /* ハンバーガーボタンが表示されているときは「幅をリセット」ボタンを右にずらす */
             #reset-widths-container {
-                left: 5rem !important; /* ハンバーガーボタンと重ならないように位置を調整 */
+                left: 76px !important; /* ハンバーガーボタンの右端(68px)からボタン間の間隔(8px)に揃える */
             }
             /* パネルが開いている（-translate-x-fullがない）とき、メイン画面側にもたせる左マージン（色がパネルの裏に隠れるのを防止） */
             #main-container {
@@ -425,41 +425,41 @@
 
         <!-- 左上：境界線リセットボタン (ハンバーガーボタンと重ならないようにIDで位置制御) -->
         <div id="reset-widths-container" class="absolute top-6 left-8 flex items-center gap-2 z-40 transition-all duration-300">
-            <button id="reset-widths-btn" class="h-11 px-3 md:px-4 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white font-bold text-[11px] md:text-xs tracking-wider rounded-full shadow-lg border border-white/20 transition-all hover:scale-105 cursor-pointer flex items-center gap-1.5 uppercase" title="色領域の比率を均等にリセット">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <button id="reset-widths-btn" class="w-11 h-11 flex items-center justify-center bg-black/40 hover:bg-black/60 backdrop-blur-md text-white rounded-full shadow-lg border border-white/20 transition-all hover:scale-105 cursor-pointer" title="色領域の比率を均等にリセット">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 3v5h-5" />
                 </svg>
-                <span id="txt-reset-widths">幅をリセット</span>
             </button>
             <button id="toggle-split-view-btn" class="w-11 h-11 flex items-center justify-center bg-black/40 hover:bg-black/60 backdrop-blur-md text-white rounded-full shadow-lg border border-white/20 transition-all hover:scale-105 cursor-pointer" title="配色の左右配置を反転">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
             </button>
+            <button id="ruler-toggle-btn" class="w-11 h-11 flex items-center justify-center bg-black/40 hover:bg-black/60 backdrop-blur-md text-white rounded-full shadow-lg border border-white/20 transition-all hover:scale-105 cursor-pointer" style="opacity: 0.4;" title="メモリ線表示切替">👁</button>
         </div>
 
         <!-- 右上：履歴＆SAVEボタン -->
         <div class="absolute top-6 right-6 flex flex-col items-end gap-3 z-40">
-            <div class="flex items-center gap-1 bg-black/40 backdrop-blur-md p-1 rounded-full border border-white/20 shadow-lg">
-                <button id="undo-btn" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 text-white transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" title="一つ前に戻る (Ctrl+Z)">
+            <div class="flex items-center gap-1 bg-black/40 backdrop-blur-md p-1 rounded-full border border-white/20 shadow-lg h-11 w-24">
+                <button id="undo-btn" class="flex-1 h-full flex items-center justify-center rounded-full hover:bg-white/20 text-white transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" title="一つ前に戻る (Ctrl+Z)">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
-                <button id="redo-btn" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 text-white transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" title="一つ後に進む (Ctrl+Y)">
+                <button id="redo-btn" class="flex-1 h-full flex items-center justify-center rounded-full hover:bg-white/20 text-white transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" title="一つ後に進む (Ctrl+Y)">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
                 </button>
             </div>
-            <button id="save-stock-btn" style="background-color: #3B82F6; border-color: rgba(59, 130, 246, 0.3);" class="px-5 py-2.5 backdrop-blur-md text-white font-bold text-xs tracking-widest rounded-full shadow-lg transition-all hover:scale-105 cursor-pointer flex items-center gap-2 uppercase">
+            <button id="save-stock-btn" style="background-color: #3B82F6; border-color: rgba(59, 130, 246, 0.3);" class="h-11 w-24 backdrop-blur-md text-white font-bold text-xs tracking-widest rounded-full shadow-lg transition-all hover:scale-105 cursor-pointer flex items-center justify-center gap-2 uppercase">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
                 <span id="txt-save">保存</span>
             </button>
-            <button id="web-btn" style="background-color: #3B82F6; border-color: rgba(59, 130, 246, 0.3);" class="px-5 py-2.5 backdrop-blur-md text-white font-bold text-xs tracking-widest rounded-full shadow-lg transition-all hover:scale-105 cursor-pointer flex items-center gap-2 uppercase">
+            <button id="web-btn" style="background-color: #3B82F6; border-color: rgba(59, 130, 246, 0.3);" class="h-11 w-24 backdrop-blur-md text-white font-bold text-xs tracking-widest rounded-full shadow-lg transition-all hover:scale-105 cursor-pointer flex items-center justify-center gap-2 uppercase">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                 </svg>
@@ -1056,6 +1056,7 @@
                 this.stocks = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY) || '[]');
                 this.isSplitMode = false;
                 this.isPreviewHidden = false; // デフォルトは表示された状態
+                this.isRulerVisible = false; // デフォルトはオフ（非表示）
                 this.touchStartX = 0;
                 this.touchStartY = 0;
 
@@ -1136,6 +1137,7 @@
                     modeSplit: document.getElementById('mode-split'),
                     keepBaseUpdateBtn: document.getElementById('keep-base-update-btn'),
                     resetWidthsBtn: document.getElementById('reset-widths-btn'),
+                    rulerToggleBtn: document.getElementById('ruler-toggle-btn'),
                     webBtn: document.getElementById('web-btn'),
                     webPreviewScreen: document.getElementById('web-preview-screen'),
                     previewToggleBtn: document.getElementById('preview-toggle-btn')
@@ -1451,6 +1453,19 @@
                         }
                         this.dom.previewToggleBtn.style.opacity = this.isPreviewHidden ? '0.4' : '1';
                         this.saveState();
+                    });
+                }
+
+                if (this.dom.rulerToggleBtn) {
+                    this.dom.rulerToggleBtn.addEventListener('click', () => {
+                        this.isRulerVisible = !this.isRulerVisible;
+                        const rulerContainer = document.getElementById('ruler-container');
+                        if (rulerContainer) {
+                            rulerContainer.style.display = this.isRulerVisible ? '' : 'none';
+                        }
+                        this.dom.rulerToggleBtn.style.opacity = this.isRulerVisible ? '1' : '0.4';
+                        this.renderRuler();
+                        this.pushHistory();
                     });
                 }
 
@@ -2779,6 +2794,8 @@
             renderRuler() {
                 const rulerContainer = document.getElementById('ruler-container');
                 if (!rulerContainer) return;
+                rulerContainer.style.display = this.isRulerVisible ? '' : 'none';
+                if (!this.isRulerVisible) return;
                 rulerContainer.innerHTML = '';
                 if (!this.currentColors || this.currentColors.length === 0) return;
 
@@ -2815,6 +2832,7 @@
                     colorCount: this.dom.colorCountSlider.value,
                     isSplitMode: this.isSplitMode,
                     isPreviewHidden: this.isPreviewHidden,
+                    isRulerVisible: this.isRulerVisible,
                     globalHue: this.dom.globalHueInput.value,
                     globalSat: this.dom.globalSatInput.value,
                     globalLit: this.dom.globalLitInput.value,
@@ -2863,6 +2881,17 @@
                         if (this.dom.previewToggleBtn) {
                             this.dom.previewToggleBtn.style.opacity = this.isPreviewHidden ? '0.4' : '1';
                         }
+                    }
+                    if (state.isRulerVisible !== undefined) {
+                        this.isRulerVisible = state.isRulerVisible;
+                        const rulerContainer = document.getElementById('ruler-container');
+                        if (rulerContainer) {
+                            rulerContainer.style.display = this.isRulerVisible ? '' : 'none';
+                        }
+                        if (this.dom.rulerToggleBtn) {
+                            this.dom.rulerToggleBtn.style.opacity = this.isRulerVisible ? '1' : '0.4';
+                        }
+                        this.renderRuler();
                     }
                     if (state.globalHue !== undefined) {
                         this.dom.globalHueSlider.value = state.globalHue;
@@ -2948,6 +2977,7 @@
                     subMode: this.dom.subMode.value,
                     colorCount: this.dom.colorCountSlider.value,
                     isSplitMode: this.isSplitMode,
+                    isRulerVisible: this.isRulerVisible,
                     globalHue: this.dom.globalHueInput.value,
                     globalSat: this.dom.globalSatInput.value,
                     globalLit: this.dom.globalLitInput.value,
@@ -2977,6 +3007,17 @@
                 this.updateSubModes();
                 if (state.subMode) this.dom.subMode.value = state.subMode;
                 if (state.isSplitMode !== undefined) this.setDisplayMode(state.isSplitMode, false);
+                if (state.isRulerVisible !== undefined) {
+                    this.isRulerVisible = state.isRulerVisible;
+                    const rulerContainer = document.getElementById('ruler-container');
+                    if (rulerContainer) {
+                        rulerContainer.style.display = this.isRulerVisible ? '' : 'none';
+                    }
+                    if (this.dom.rulerToggleBtn) {
+                        this.dom.rulerToggleBtn.style.opacity = this.isRulerVisible ? '1' : '0.4';
+                    }
+                    this.renderRuler();
+                }
                 if (state.globalHue !== undefined) {
                     this.dom.globalHueSlider.value = state.globalHue;
                     this.dom.globalHueInput.value = state.globalHue;
@@ -3052,6 +3093,7 @@
                     subMode: this.dom.subMode.value,
                     colorCount: this.dom.colorCountSlider.value,
                     isSplitMode: this.isSplitMode,
+                    isRulerVisible: this.isRulerVisible,
                     globalHue: this.dom.globalHueInput.value,
                     globalSat: this.dom.globalSatInput.value,
                     globalLit: this.dom.globalLitInput.value,
@@ -3125,7 +3167,6 @@
                 document.getElementById('txt-display-mode').textContent = t.displayMode;
                 document.getElementById('txt-vision-mode').textContent = t.visionModeLabel;
                 document.getElementById('txt-stock-list').textContent = t.stockList;
-                document.getElementById('txt-reset-widths').textContent = t.resetWidths;
                 document.getElementById('txt-save').textContent = t.save;
                 document.getElementById('txt-web').textContent = t.web;
                 document.getElementById('txt-generate').textContent = t.generate;
@@ -3747,6 +3788,7 @@
                     subMode: this.dom.subMode.value,
                     colorCount: this.dom.colorCountSlider.value,
                     isSplitMode: this.isSplitMode,
+                    isRulerVisible: this.isRulerVisible,
                     globalHue: this.dom.globalHueInput.value,
                     globalSat: this.dom.globalSatInput.value,
                     globalLit: this.dom.globalLitInput.value,
