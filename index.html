@@ -1740,8 +1740,8 @@
                     if (!c.originalOklch) {
                         c.originalOklch = { ...c.oklch };
                     }
-                    const orig = c.originalOklch;
                     
+                    const orig = c.originalOklch;
                     let h = (orig.h + globalHue) % 360;
                     if (h < 0) h += 360;
                     let c_val = Math.max(0.0, Math.min(1.0, orig.c * (1.0 + globalSat)));
@@ -1775,8 +1775,18 @@
                 let baseState = null;
                 if (keepBase && this.currentColors.length > 0) {
                     const firstColor = this.currentColors[0];
-                    const targetOklch = firstColor.originalOklch || firstColor.oklch || ColorMath.rgbToOklch(...firstColor.rgb);
-                    baseState = { ...targetOklch };
+                    const oklch = firstColor.oklch || ColorMath.rgbToOklch(...firstColor.rgb);
+                    
+                    const globalHue = parseFloat(this.dom.globalHueInput.value) || 0;
+                    const globalSat = (parseFloat(this.dom.globalSatInput.value) || 0) / 100;
+                    const globalLit = (parseFloat(this.dom.globalLitInput.value) || 0) / 100;
+
+                    let h = (oklch.h - globalHue) % 360;
+                    if (h < 0) h += 360;
+                    let c_val = Math.max(0.0, Math.min(1.0, oklch.c / (1.0 + globalSat)));
+                    let l = Math.max(0.0, Math.min(1.0, oklch.l - globalLit));
+
+                    baseState = { l, c: c_val, h };
                 }
 
                 // 新しく生成
@@ -1789,11 +1799,13 @@
                 if (globalHue !== 0 || globalSat !== 0 || globalLit !== 0) {
                     newColors.forEach(c => {
                         if (!c.originalOklch) c.originalOklch = { ...c.oklch };
+                        
                         const orig = c.originalOklch;
                         let h = (orig.h + globalHue) % 360;
                         if (h < 0) h += 360;
                         let c_val = Math.max(0.0, Math.min(1.0, orig.c * (1.0 + globalSat)));
                         let l = Math.max(0.0, Math.min(1.0, orig.l + globalLit));
+
                         const oklch = { l, c: c_val, h };
                         const rgb = ColorMath.oklchToRgb(oklch.l, oklch.c, oklch.h);
                         c.oklch = oklch;
@@ -2025,18 +2037,14 @@
                     lockBtn.title = colorObj.locked ? 'ロック中 (クリックで解除)' : 'クリックで色をロック';
                     lockBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        
-                        // 修正: 入力値の同期を先に行う
-                        const inputEl = pane.querySelector('input[type="text"]');
-                        if (inputEl) {
-                            this.handleColorEditInput(index, inputEl.value, pane);
-                        }
 
-                        // 修正: オブジェクト更新後に、確実に対象の locked 状態を反転させる
+                        // オブジェクト更新後に、確実に対象の locked 状態を反転させる
                         if (this.currentColors[index]) {
-                            this.currentColors[index].locked = !this.currentColors[index].locked;
-                            if (this.currentColors[index].widthRatio === undefined || isNaN(this.currentColors[index].widthRatio)) {
-                                this.currentColors[index].widthRatio = 1;
+                            const target = this.currentColors[index];
+                            target.locked = !target.locked;
+
+                            if (target.widthRatio === undefined || isNaN(target.widthRatio)) {
+                                target.widthRatio = 1;
                             }
                         }
                         this.renderPanes();
