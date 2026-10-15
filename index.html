@@ -2803,7 +2803,8 @@
                 for (let v = 0.5; v < 10.0; v += 0.5) {
                     const tick = document.createElement('div');
                     const isInteger = Number.isInteger(v);
-                    tick.className = isInteger ? 'ruler-tick integer' : 'ruler-tick sub';
+                    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+                    const height = isTouchDevice ? (isInteger ? '40%' : '35%') : (isInteger ? '16px' : '8px');
                     const leftPercent = (v / 10) * 100;
                     
                     const colorRgb = this.getColorAtPosition(v / 10);
