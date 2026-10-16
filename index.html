@@ -2466,12 +2466,17 @@
                 // 全体背景（左側の暗いトーン / ベースカラー）
                 webPreview.style.backgroundColor = c0;
                 const rgb0 = this.currentColors[0].rgb;
+                const rgb1 = this.currentColors[Math.min(1, len - 1)].rgb;
+                const rgb2 = this.currentColors[Math.min(2, len - 1)].rgb;
+                const rgb3 = this.currentColors[Math.min(3, len - 1)].rgb;
+                const rgb4 = this.currentColors[Math.min(4, len - 1)].rgb;
+                const rgb5 = this.currentColors[Math.min(5, len - 1)].rgb;
                 const baseTextColor = ColorMath.getAccessibleTextColor(rgb0[0], rgb0[1], rgb0[2]);
+                const cardTextColor = ColorMath.getAccessibleTextColor(rgb1[0], rgb1[1], rgb1[2]);
                 
                 // 文字色カラーモードがONかつ色数が3以上の場合のパレット文字色割り当て（1色目背景の部分と2色目背景の部分でそれぞれ統一）
                 const useColorText = this.isWebColorTextMode && len > 2;
                 const bg1TextColor = useColorText ? colors[1 % len] : baseTextColor; // 1色目背景(c0)の上の文字色
-                const bg2TextColor = useColorText ? colors[2 % len] : baseTextColor; // 2色目背景(c1)の上の文字色
                 const bg3TextColor = useColorText ? colors[2 % len] : baseTextColor; // 3色目 (BrandStudio & タイトル用)
 
                 webPreview.style.color = bg1TextColor;
@@ -2492,24 +2497,22 @@
                     const webLogoBg = document.getElementById('web-logo-bg');
                     if (webLogoBg) webLogoBg.style.backgroundColor = c1;
                     webLogoIcon.style.backgroundColor = 'transparent';
-                    webLogoIcon.style.color = c2;
+                    webLogoIcon.style.color = len === 2 ? c0 : c2;
                 }
                 if (webBrandName) webBrandName.style.color = bg3TextColor;
 
                 if (webNavBtn) {
                     webNavBtn.style.backgroundColor = c1;
-                    const rgb1 = this.currentColors[Math.min(1, len - 1)].rgb;
-                    webNavBtn.style.color = useColorText ? colors[2 % len] : ColorMath.getAccessibleTextColor(rgb1[0], rgb1[1], rgb1[2]);
+                    webNavBtn.style.color = useColorText ? colors[2 % len] : cardTextColor;
                 }
 
                 // バッジ (2色目背景 c1)
                 if (webBadge) {
                     webBadge.style.backgroundColor = c1;
-                    const rgb1 = this.currentColors[Math.min(1, len - 1)].rgb;
-                    webBadge.style.color = useColorText ? colors[2 % len] : ColorMath.getAccessibleTextColor(rgb1[0], rgb1[1], rgb1[2]);
+                    webBadge.style.color = useColorText ? colors[2 % len] : cardTextColor;
                     webBadge.style.borderColor = c2;
                 }
-                if (webBadgeDot) webBadgeDot.style.backgroundColor = c3;
+                if (webBadgeDot) webBadgeDot.style.backgroundColor = len === 2 ? c0 : c3;
 
                 // ヒーローテキスト (1色目背景 c0)
                 if (webTitle) webTitle.style.color = bg3TextColor;
@@ -2523,12 +2526,12 @@
                 // カード内部のタイトル・説明文 (2色目背景 c1)
                 const featTitles = document.querySelectorAll('[id^="web-feat-title-"]');
                 featTitles.forEach((item) => {
-                    item.style.color = bg2TextColor;
+                    item.style.color = useColorText ? colors[2 % len] : cardTextColor;
                 });
 
                 const featDescs = document.querySelectorAll('[id^="web-feat-desc-"]');
                 featDescs.forEach((item) => {
-                    item.style.color = bg2TextColor;
+                    item.style.color = useColorText ? colors[2 % len] : cardTextColor;
                 });
 
                 // ボタン
@@ -2547,7 +2550,7 @@
 
                 // 右側ヒーローカード (2色目背景 c1)
                 applyCardStyle(webHeroCard, c1, c2);
-                webHeroCard.style.color = bg2TextColor;
+                webHeroCard.style.color = useColorText ? colors[2 % len] : cardTextColor;
 
                 if (webGeoGrid) {
                     webGeoGrid.style.backgroundColor = c0;
@@ -2557,53 +2560,54 @@
                 // 幾何学図形アイコン群
                 if (shape1) {
                     shape1.style.backgroundColor = len === 6 ? colors[3] : c2;
-                    const rgb2 = len === 6 ? this.currentColors[3].rgb : this.currentColors[Math.min(2, len - 1)].rgb;
-                    shape1.style.color = len === 3 ? colors[0] : (useColorText ? colors[0] : ColorMath.getAccessibleTextColor(rgb2[0], rgb2[1], rgb2[2]));
+                    const rgb_s1 = len === 6 ? rgb3 : rgb2;
+                    shape1.style.color = len === 3 ? colors[0] : (useColorText ? colors[0] : ColorMath.getAccessibleTextColor(rgb_s1[0], rgb_s1[1], rgb_s1[2]));
                 }
                 if (shape2) {
-                    const shapeColor2 = len === 6 ? colors[4] : (len === 3 ? shape1.style.backgroundColor : colors[Math.min(3, len - 1)]);
+                    const shapeColor2 = len === 6 ? colors[4] : (len === 3 ? shape1.style.backgroundColor : c2);
                     shape2.style.backgroundColor = shapeColor2;
-                    const rgb3 = len === 6 ? this.currentColors[4].rgb : this.currentColors[Math.min(3, len - 1)].rgb;
-                    shape2.style.color = len === 3 ? colors[0] : (useColorText ? (len === 3 ? shape1.style.color : colors[1 % len]) : ColorMath.getAccessibleTextColor(rgb3[0], rgb3[1], rgb3[2]));
+                    const rgb_s2 = len === 6 ? rgb4 : rgb2;
+                    shape2.style.color = len === 3 ? colors[0] : (useColorText ? (len === 3 ? shape1.style.color : colors[1 % len]) : ColorMath.getAccessibleTextColor(rgb_s2[0], rgb_s2[1], rgb_s2[2]));
                 }
                 if (shape3) {
-                    const shapeColor3 = len === 6 ? colors[5] : (len === 3 ? shape1.style.backgroundColor : colors[Math.min(4, len - 1) || len - 1]);
+                    const shapeColor3 = len === 6 ? colors[5] : (len === 3 ? shape1.style.backgroundColor : c2);
                     shape3.style.backgroundColor = shapeColor3;
-                    const rgb4 = len === 6 ? this.currentColors[5].rgb : this.currentColors[Math.min(4, len - 1) || len - 1].rgb;
-                    shape3.style.color = len === 3 ? colors[0] : (useColorText ? (len === 3 ? shape1.style.color : colors[2 % len]) : ColorMath.getAccessibleTextColor(rgb4[0], rgb4[1], rgb4[2]));
+                    const rgb_s3 = len === 6 ? rgb5 : rgb2;
+                    shape3.style.color = len === 3 ? colors[0] : (useColorText ? (len === 3 ? shape1.style.color : colors[2 % len]) : ColorMath.getAccessibleTextColor(rgb_s3[0], rgb_s3[1], rgb_s3[2]));
                 }
 
                 if (dot1) dot1.style.backgroundColor = c1;
-                if (dot2) dot2.style.backgroundColor = c2;
-                if (dot3) dot3.style.backgroundColor = c3;
-                if (bar1) bar1.style.backgroundColor = c2;
-                if (bar2) bar2.style.backgroundColor = c3;
+                if (dot2) dot2.style.backgroundColor = len === 2 ? c0 : c2;
+                if (dot3) dot3.style.backgroundColor = len === 2 ? c0 : c3;
+                if (bar1) bar1.style.backgroundColor = len === 2 ? c0 : c2;
+                if (bar2) bar2.style.backgroundColor = len === 2 ? c0 : c3;
 
                 // サブフィーチャーカード群（2〜6色に完全対応）
                 applyCardStyle(featCard1, c1, c2);
-                featCard1.style.color = bg2TextColor;
+                featCard1.style.color = useColorText ? colors[2 % len] : cardTextColor;
                 if (featIcon1) {
-                    featIcon1.style.backgroundColor = len === 6 ? colors[3] : c2;
-                    const rgb2 = len === 6 ? this.currentColors[3].rgb : this.currentColors[Math.min(2, len - 1)].rgb;
-                    featIcon1.style.color = len === 3 ? colors[0] : (useColorText ? colors[0] : ColorMath.getAccessibleTextColor(rgb2[0], rgb2[1], rgb2[2]));
+                    const iconBgColor1 = len === 6 ? colors[3] : (len === 2 ? c0 : c2);
+                    const iconRgb1 = len === 6 ? rgb3 : (len === 2 ? rgb0 : rgb2);
+                    featIcon1.style.backgroundColor = iconBgColor1;
+                    featIcon1.style.color = useColorText ? colors[0] : ColorMath.getAccessibleTextColor(iconRgb1[0], iconRgb1[1], iconRgb1[2]);
                 }
 
                 applyCardStyle(featCard2, c1, c2);
-                featCard2.style.color = bg2TextColor;
+                featCard2.style.color = useColorText ? colors[2 % len] : cardTextColor;
                 if (featIcon2) {
-                    const iconColor2 = len === 6 ? colors[4] : (len === 3 ? featIcon1.style.backgroundColor : colors[Math.min(3, len - 1)]);
-                    featIcon2.style.backgroundColor = iconColor2;
-                    const rgb3 = len === 6 ? this.currentColors[4].rgb : this.currentColors[Math.min(3, len - 1)].rgb;
-                    featIcon2.style.color = len === 3 ? colors[0] : (useColorText ? (len === 3 ? featIcon1.style.color : colors[1 % len]) : ColorMath.getAccessibleTextColor(rgb3[0], rgb3[1], rgb3[2]));
+                    const iconBgColor2 = len === 6 ? colors[4] : (len === 3 ? featIcon1.style.backgroundColor : (len === 2 ? c0 : c3));
+                    const iconRgb2 = len === 6 ? rgb4 : (len === 2 ? rgb0 : rgb3);
+                    featIcon2.style.backgroundColor = iconBgColor2;
+                    featIcon2.style.color = useColorText ? (len === 3 ? colors[0] : colors[1 % len]) : ColorMath.getAccessibleTextColor(iconRgb2[0], iconRgb2[1], iconRgb2[2]);
                 }
 
                 applyCardStyle(featCard3, c1, c2);
-                featCard3.style.color = bg2TextColor;
+                featCard3.style.color = useColorText ? colors[2 % len] : cardTextColor;
                 if (featIcon3) {
-                    const iconColor3 = len === 6 ? colors[5] : (len === 3 ? featIcon1.style.backgroundColor : colors[Math.min(4, len - 1) || len - 1]);
-                    featIcon3.style.backgroundColor = iconColor3;
-                    const rgb4 = len === 6 ? this.currentColors[5].rgb : this.currentColors[Math.min(4, len - 1) || len - 1].rgb;
-                    featIcon3.style.color = len === 3 ? colors[0] : (useColorText ? (len === 3 ? featIcon1.style.color : colors[2 % len]) : ColorMath.getAccessibleTextColor(rgb4[0], rgb4[1], rgb4[2]));
+                    const iconBgColor3 = len === 6 ? colors[5] : (len === 3 ? featIcon1.style.backgroundColor : (len === 2 ? c0 : c3));
+                    const iconRgb3 = len === 6 ? rgb5 : (len === 2 ? rgb0 : rgb3);
+                    featIcon3.style.backgroundColor = iconBgColor3;
+                    featIcon3.style.color = useColorText ? (len === 3 ? colors[0] : colors[2 % len]) : ColorMath.getAccessibleTextColor(iconRgb3[0], iconRgb3[1], iconRgb3[2]);
                 }
             }
 
@@ -2840,7 +2844,19 @@
                         this.selectColor(index);
                         pane.draggable = false; // 文字選択中はペインのドラッグを無効化
                     });
-                    input.addEventListener('input', (e) => this.handleColorEditInput(index, e.target.value, pane));
+                    input.addEventListener('keydown', (e) => {
+                        if (input.selectionStart === 0 && (e.key === 'Backspace' || e.key === 'ArrowLeft')) {
+                            e.preventDefault();
+                            input.setSelectionRange(1, 1);
+                        }
+                    });
+                    input.addEventListener('input', (e) => {
+                        if (e.isComposing) return;
+                        this.handleColorEditInput(index, e.target.value, pane);
+                    });
+                    input.addEventListener('compositionend', (e) => {
+                        this.handleColorEditInput(index, e.target.value, pane);
+                    });
                     input.addEventListener('change', () => {
                         pane.draggable = true;
                         this.pushHistory(this.currentColors);
@@ -2981,14 +2997,18 @@
             handleColorEditInput(index, hexValue, paneEl) {
                 // 修正: 全角で入力された英数字や#を自動的に半角に変換し、入力欄の表示も同期させる
                 hexValue = this.toHalfWidth(hexValue);
+                
+                // #は消せないようにし、16進数を最大6文字に制限して常に#を先頭に付与
+                let cleanVal = hexValue.replace(/[^0-9A-Fa-f]/g, '').slice(0, 6);
+                hexValue = '#' + cleanVal;
+
                 const inputEl = paneEl.querySelector('input[type="text"]');
                 if (inputEl && inputEl.value !== hexValue) {
                     const start = inputEl.selectionStart;
                     inputEl.value = hexValue;
-                    inputEl.setSelectionRange(start, start);
+                    inputEl.setSelectionRange(Math.max(1, start), Math.max(1, start));
                 }
 
-                if (hexValue && !hexValue.startsWith('#')) hexValue = '#' + hexValue;
                 const isValidHex = /^#[0-9A-F]{6}$/i.test(hexValue);
                 
                 const oldObj = this.currentColors[index] || {};
