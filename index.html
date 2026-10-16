@@ -3283,6 +3283,10 @@
                     globalHue: this.dom.globalHueInput.value,
                     globalSat: this.dom.globalSatInput.value,
                     globalLit: this.dom.globalLitInput.value,
+                    singleHue: this.dom.singleHueInput ? this.dom.singleHueInput.value : 0,
+                    singleSat: this.dom.singleSatInput ? this.dom.singleSatInput.value : 0,
+                    singleLit: this.dom.singleLitInput ? this.dom.singleLitInput.value : 0,
+                    selectedColorIndex: this.selectedColorIndex,
                     hueStep: this.dom.hueStepInput.value,
                     satStep: this.dom.satStepInput.value,
                     litStep: this.dom.litStepInput.value,
@@ -3352,6 +3356,22 @@
                     if (state.globalLit !== undefined) {
                         this.dom.globalLitSlider.value = state.globalLit;
                         this.dom.globalLitInput.value = state.globalLit;
+                    }
+                    if (state.singleHue !== undefined && this.dom.singleHueSlider && this.dom.singleHueInput) {
+                        this.dom.singleHueSlider.value = state.singleHue;
+                        this.dom.singleHueInput.value = state.singleHue;
+                    }
+                    if (state.singleSat !== undefined && this.dom.singleSatSlider && this.dom.singleSatInput) {
+                        this.dom.singleSatSlider.value = state.singleSat;
+                        this.dom.singleSatInput.value = state.singleSat;
+                    }
+                    if (state.singleLit !== undefined && this.dom.singleLitSlider && this.dom.singleLitInput) {
+                        this.dom.singleLitSlider.value = state.singleLit;
+                        this.dom.singleLitInput.value = state.singleLit;
+                    }
+                    if (state.selectedColorIndex !== undefined) {
+                        this.selectedColorIndex = state.selectedColorIndex;
+                        this.updateSingleColorIndexLabel();
                     }
                     if (state.hueStep !== undefined) {
                         this.dom.hueStepSlider.value = state.hueStep;
@@ -3442,6 +3462,10 @@
                     globalHue: this.dom.globalHueInput.value,
                     globalSat: this.dom.globalSatInput.value,
                     globalLit: this.dom.globalLitInput.value,
+                    singleHue: this.dom.singleHueInput ? this.dom.singleHueInput.value : 0,
+                    singleSat: this.dom.singleSatInput ? this.dom.singleSatInput.value : 0,
+                    singleLit: this.dom.singleLitInput ? this.dom.singleLitInput.value : 0,
+                    selectedColorIndex: this.selectedColorIndex,
                     hueStep: this.dom.hueStepInput.value,
                     satStep: this.dom.satStepInput.value,
                     litStep: this.dom.litStepInput.value,
@@ -3491,6 +3515,22 @@
                 if (state.globalLit !== undefined) {
                     this.dom.globalLitSlider.value = state.globalLit;
                     this.dom.globalLitInput.value = state.globalLit;
+                }
+                if (state.singleHue !== undefined && this.dom.singleHueSlider && this.dom.singleHueInput) {
+                    this.dom.singleHueSlider.value = state.singleHue;
+                    this.dom.singleHueInput.value = state.singleHue;
+                }
+                if (state.singleSat !== undefined && this.dom.singleSatSlider && this.dom.singleSatInput) {
+                    this.dom.singleSatSlider.value = state.singleSat;
+                    this.dom.singleSatInput.value = state.singleSat;
+                }
+                if (state.singleLit !== undefined && this.dom.singleLitSlider && this.dom.singleLitInput) {
+                    this.dom.singleLitSlider.value = state.singleLit;
+                    this.dom.singleLitInput.value = state.singleLit;
+                }
+                if (state.selectedColorIndex !== undefined) {
+                    this.selectedColorIndex = state.selectedColorIndex;
+                    this.updateSingleColorIndexLabel();
                 }
                 if (state.hueStep !== undefined) {
                     this.dom.hueStepSlider.value = state.hueStep;
@@ -3575,6 +3615,10 @@
                     globalHue: this.dom.globalHueInput.value,
                     globalSat: this.dom.globalSatInput.value,
                     globalLit: this.dom.globalLitInput.value,
+                    singleHue: this.dom.singleHueInput ? this.dom.singleHueInput.value : 0,
+                    singleSat: this.dom.singleSatInput ? this.dom.singleSatInput.value : 0,
+                    singleLit: this.dom.singleLitInput ? this.dom.singleLitInput.value : 0,
+                    selectedColorIndex: this.selectedColorIndex,
                     hueStep: this.dom.hueStepInput.value,
                     satStep: this.dom.satStepInput.value,
                     litStep: this.dom.litStepInput.value,
