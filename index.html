@@ -47,6 +47,7 @@
             background-repeat: no-repeat;
             background-size: 100% calc(100% + 2px); /* 追加: 下端のサブピクセル隙間・色漏れを完全に隠す */
             cursor: pointer;
+            touch-action: none; /* スマホ等で上下左右に移動させてもプレビュー操作がキャンセルされないように設定 */
         }
         @media (min-width: 1201px) {
             #settings-panel {
@@ -218,7 +219,9 @@
     <!-- 編集画面 (サイドバー / モバイルドロワー) -->
     <aside id="settings-panel" class="absolute inset-y-0 left-0 w-80 h-full flex-shrink-0 flex flex-col py-6 text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out -translate-x-full">
         <!-- リアルタイム縦長グラデーションプレビュー（狭い画面時にサイドバー右縁に追従） -->
-        <div id="sidebar-gradient-preview"></div>
+        <div id="sidebar-gradient-preview" style="position: absolute; left: 0; top: 0; width: 28px; height: 100%; z-index: 60; overflow: hidden; cursor: pointer;">
+            <div id="sidebar-preview-inner" style="position: relative; width: 100%; height: 100%;"></div>
+        </div>
 
         <div class="flex justify-between items-center mb-4 flex-shrink-0 px-6">
             <h2 class="text-xl font-bold tracking-wider drop-shadow flex items-center gap-2">
@@ -1581,16 +1584,22 @@
                 }
 
                 const sidebarPreview = document.getElementById('sidebar-gradient-preview');
-                if (sidebarPreview) {
+                const sidebarPreviewInner = document.getElementById('sidebar-preview-inner');
+                if (sidebarPreview && sidebarPreviewInner) {
                     let isDraggingPreview = false;
                     let dragStartIndex = -1;
-                    let lastClientY = 0;
+                    let previewPointerStartY = 0;
+                    let previewElementHeight = 0;
+                    let floatingBar = null;
 
                     sidebarPreview.addEventListener('pointerdown', (e) => {
                         const rect = sidebarPreview.getBoundingClientRect();
                         const clickY = e.clientY - rect.top;
                         const height = rect.height;
                         if (height <= 0) return;
+                        previewElementHeight = height;
+                        previewPointerStartY = e.clientY;
+
                         const ratio = Math.max(0, Math.min(1, clickY / height));
 
                         const ratios = this.currentColors.map(c => c.widthRatio !== undefined ? c.widthRatio : 1);
@@ -1610,71 +1619,85 @@
 
                         isDraggingPreview = true;
                         dragStartIndex = clickedIndex;
-                        lastClientY = e.clientY;
                         sidebarPreview.setPointerCapture(e.pointerId);
+
+                        // つかんでいる部分を黒く表示し、指に追尾して動くフロート要素を作成
+                        let accTop = 0;
+                        for (let i = 0; i < clickedIndex; i++) {
+                            accTop += (ratios[i] / totalRatio) * height;
+                        }
+                        const currentBlockHeight = (ratios[clickedIndex] / totalRatio) * height;
+
+                        floatingBar = document.createElement('div');
+                        floatingBar.style.position = 'absolute';
+                        floatingBar.style.left = '0';
+                        floatingBar.style.width = '100%';
+                        floatingBar.style.top = `${accTop}px`;
+                        floatingBar.style.height = `${currentBlockHeight}px`;
+                        floatingBar.style.backgroundColor = '#000000'; // メイン画面と同様に黒く表示
+                        floatingBar.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+                        floatingBar.style.zIndex = '70';
+                        sidebarPreviewInner.appendChild(floatingBar);
+
+                        this.updateBackground();
                         e.preventDefault();
                     });
 
                     sidebarPreview.addEventListener('pointermove', (e) => {
-                        if (!isDraggingPreview) return;
-                        const currentY = e.clientY;
-                        const direction = currentY > lastClientY ? 'down' : (currentY < lastClientY ? 'up' : null);
-                        if (currentY !== lastClientY) {
-                            lastClientY = currentY;
-                        }
+                        if (!isDraggingPreview || !floatingBar) return;
 
-                        const rect = sidebarPreview.getBoundingClientRect();
-                        const pointerY = currentY - rect.top;
-                        const height = rect.height;
-                        if (height <= 0) return;
-
+                        const deltaY = e.clientY - previewPointerStartY;
                         const ratios = this.currentColors.map(c => c.widthRatio !== undefined ? c.widthRatio : 1);
                         const totalRatio = ratios.reduce((sum, r) => sum + r, 0) || 1;
 
                         let acc = 0;
-                        const segments = ratios.map((r, i) => {
-                            const h = (r / totalRatio) * height;
-                            const top = acc;
-                            const bottom = acc + h;
-                            const center = (top + bottom) / 2;
-                            acc = bottom;
-                            return { index: i, top, bottom, height: h, center };
-                        });
+                        let initialAccTop = 0;
+                        for (let i = 0; i < dragStartIndex; i++) {
+                            initialAccTop += (ratios[i] / totalRatio) * previewElementHeight;
+                        }
+                        const currentBlockHeight = (ratios[dragStartIndex] / totalRatio) * previewElementHeight;
+                        
+                        // 指に追尾してスムーズに動かす
+                        let newTop = initialAccTop + deltaY;
+                        floatingBar.style.top = `${newTop}px`;
 
-                        const currentSeg = segments[dragStartIndex];
-                        if (!currentSeg) return;
+                        const floatingCenterY = newTop + currentBlockHeight / 2;
 
-                        const h = currentSeg.height;
-                        const dragTop = pointerY - (h / 2);
-                        const dragBottom = dragTop + h;
-                        const dragCenter = (dragTop + dragBottom) / 2;
-
-                        if (direction === 'down' && dragStartIndex < this.currentColors.length - 1) {
-                            const nextSeg = segments[dragStartIndex + 1];
-                            if (nextSeg && (dragBottom >= nextSeg.center || dragCenter >= nextSeg.top)) {
-                                const movedColor = this.currentColors.splice(dragStartIndex, 1)[0];
-                                this.currentColors.splice(dragStartIndex + 1, 0, movedColor);
-                                dragStartIndex += 1;
-                                this.renderPanes();
+                        let accCheck = 0;
+                        let targetIndex = dragStartIndex;
+                        for (let i = 0; i < this.currentColors.length; i++) {
+                            const h = (ratios[i] / totalRatio) * previewElementHeight;
+                            const top = accCheck;
+                            const bottom = accCheck + h;
+                            accCheck = bottom;
+                            if (floatingCenterY >= top && floatingCenterY < bottom) {
+                                targetIndex = i;
+                                break;
+                            } else if (i === this.currentColors.length - 1 && floatingCenterY >= bottom) {
+                                targetIndex = i;
                             }
-                        } else if (direction === 'up' && dragStartIndex > 0) {
-                            const prevSeg = segments[dragStartIndex - 1];
-                            if (prevSeg && (dragTop <= prevSeg.center || dragCenter <= prevSeg.bottom)) {
-                                const movedColor = this.currentColors.splice(dragStartIndex, 1)[0];
-                                this.currentColors.splice(dragStartIndex - 1, 0, movedColor);
-                                dragStartIndex -= 1;
-                                this.renderPanes();
-                            }
+                        }
+
+                        if (targetIndex !== dragStartIndex) {
+                            const movedColor = this.currentColors.splice(dragStartIndex, 1)[0];
+                            this.currentColors.splice(targetIndex, 0, movedColor);
+                            dragStartIndex = targetIndex;
+                            previewPointerStartY = e.clientY - (newTop - this.getAccumulatedTop(dragStartIndex, ratios, totalRatio, previewElementHeight));
+                            this.updateBackground();
                         }
                     });
 
                     const endPreviewDrag = (e) => {
                         if (!isDraggingPreview) return;
                         isDraggingPreview = false;
+                        if (floatingBar && floatingBar.parentNode) {
+                            floatingBar.remove();
+                            floatingBar = null;
+                        }
                         try {
                             sidebarPreview.releasePointerCapture(e.pointerId);
                         } catch (err) {}
-                        this.renderPanes();
+                        this.updateBackground();
                         this.pushHistory(this.currentColors);
                     };
 
@@ -3115,7 +3138,8 @@
 
                 // サイドバー内の縦長プレビュー（上から下へ、各色領域のサイズ変化・比率および分割モードを完全に反映）
                 const sidebarPreview = document.getElementById('sidebar-gradient-preview');
-                if (sidebarPreview && hexes.length > 0) {
+                const sidebarPreviewInner = document.getElementById('sidebar-preview-inner');
+                if (sidebarPreview && sidebarPreviewInner && hexes.length > 0) {
                     let sbCurrentPercent = 0;
                     const sbStops = [];
 
@@ -3126,30 +3150,41 @@
                         if (i === ratios.length - 1) endPct = 100; // 最後の要素の終端を100%に拡張して隙間や色漏れを完全に防止
                         const midPct = startPct + ((endPct - startPct) / 2);
 
+                        // ドラッグ中は、掴んでいるインデックスの部分を黒く表示する
+                        const displayHex = (this.draggingPaneIndex !== undefined && i === this.draggingPaneIndex) ? '#000000' : hexes[i];
+
                         if (this.isSplitMode) {
                             if (i === ratios.length - 1) {
-                                sbStops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} 100%`);
+                                sbStops.push(`${displayHex} ${startPct}%, ${displayHex} 100%`);
                             } else {
-                                sbStops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
+                                sbStops.push(`${displayHex} ${startPct}%, ${displayHex} ${endPct}%`);
                             }
                         } else {
                             if (i === 0) {
-                                sbStops.push(`${hexes[i]} ${startPct}%`);
-                                sbStops.push(`${hexes[i]} ${midPct}%`);
+                                sbStops.push(`${displayHex} ${startPct}%`);
+                                sbStops.push(`${displayHex} ${midPct}%`);
                             } else if (i === ratios.length - 1) {
-                                sbStops.push(`${hexes[i]} ${startPct}%`);
-                                sbStops.push(`${hexes[i]} ${midPct}%`);
-                                sbStops.push(`${hexes[i]} 100%`);
+                                sbStops.push(`${displayHex} ${startPct}%`);
+                                sbStops.push(`${displayHex} ${midPct}%`);
+                                sbStops.push(`${displayHex} 100%`);
                             } else {
-                                sbStops.push(`${hexes[i]} ${startPct}%`);
-                                sbStops.push(`${hexes[i]} ${midPct}%`);
+                                sbStops.push(`${displayHex} ${startPct}%`);
+                                sbStops.push(`${displayHex} ${midPct}%`);
                             }
                         }
                         sbCurrentPercent = endPct;
                     });
 
-                    sidebarPreview.style.backgroundImage = `linear-gradient(to bottom, ${sbStops.join(', ')})`;
+                    sidebarPreviewInner.style.backgroundImage = `linear-gradient(to bottom, ${sbStops.join(', ')})`;
                 }
+            }
+
+            getAccumulatedTop(index, ratios, totalRatio, height) {
+                let acc = 0;
+                for (let i = 0; i < index; i++) {
+                    acc += (ratios[i] / totalRatio) * height;
+                }
+                return acc;
             }
 
             getColorAtPosition(ratio) {
