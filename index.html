@@ -46,7 +46,7 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.15);
             background-repeat: no-repeat;
             background-size: 100% calc(100% + 2px); /* 追加: 下端のサブピクセル隙間・色漏れを完全に隠す */
-            pointer-events: none;
+            cursor: pointer;
         }
         @media (min-width: 1201px) {
             #settings-panel {
@@ -341,6 +341,58 @@
                             </div>
                         </div>
                         <input type="range" id="global-lit-slider" min="-100" max="100" value="0" step="1" class="w-full cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 単色調整 -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <label id="txt-single-adjustment" class="text-xs font-semibold uppercase tracking-wider opacity-70"><span id="txt-single-adjustment-title">単色調整</span> <span id="single-color-index-label" class="text-xs" style="color: #7AC3FF;">1</span></label>
+                    <div class="flex items-center gap-1">
+                        <button id="commit-single-btn" class="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer" title="単色調整を確定（保存）">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                            </svg>
+                        </button>
+                        <button id="reset-single-btn" class="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer" title="単色調整をリセット">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 3v5h-5" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="w-full bg-black/40 border border-white/20 rounded-lg p-3 mb-2 space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label id="txt-single-hue-label" class="text-xs text-white/80">色相調整</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="single-hue-input" min="-180" max="180" value="0" step="1" class="w-16 bg-black/50 border border-white/20 rounded text-xs font-bold text-right outline-none focus:border-indigo-500 px-1 py-0.5" style="color: #7AC3FF;">
+                                <span class="text-xs" style="color: #7AC3FF;">°</span>
+                            </div>
+                        </div>
+                        <input type="range" id="single-hue-slider" min="-180" max="180" value="0" step="1" class="w-full cursor-pointer">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label id="txt-single-sat-label" class="text-xs text-white/80">彩度調整</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="single-sat-input" min="-100" max="100" value="0" step="1" class="w-16 bg-black/50 border border-white/20 rounded text-xs font-bold text-right outline-none focus:border-indigo-500 px-1 py-0.5" style="color: #7AC3FF;">
+                                <span class="text-xs" style="color: #7AC3FF;">%</span>
+                            </div>
+                        </div>
+                        <input type="range" id="single-sat-slider" min="-100" max="100" value="0" step="1" class="w-full cursor-pointer">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label id="txt-single-lit-label" class="text-xs text-white/80">明度調整</label>
+                            <div class="flex items-center gap-1">
+                                <input type="number" id="single-lit-input" min="-100" max="100" value="0" step="1" class="w-16 bg-black/50 border border-white/20 rounded text-xs font-bold text-right outline-none focus:border-indigo-500 px-1 py-0.5" style="color: #7AC3FF;">
+                                <span class="text-xs" style="color: #7AC3FF;">%</span>
+                            </div>
+                        </div>
+                        <input type="range" id="single-lit-slider" min="-100" max="100" value="0" step="1" class="w-full cursor-pointer">
                     </div>
                 </div>
             </div>
@@ -1056,6 +1108,7 @@
                 this.isPreviewHidden = false; // デフォルトは表示された状態
                 this.isRulerVisible = false; // デフォルトはオフ（非表示）
                 this.isWebColorTextMode = false; // Web文字色切替モード
+                this.selectedColorIndex = 0; // 選択中のカラーインデックス
                 this.touchStartX = 0;
                 this.touchStartY = 0;
 
@@ -1121,6 +1174,14 @@
                     globalSatInput: document.getElementById('global-sat-input'),
                     globalLitSlider: document.getElementById('global-lit-slider'),
                     globalLitInput: document.getElementById('global-lit-input'),
+                    singleHueSlider: document.getElementById('single-hue-slider'),
+                    singleHueInput: document.getElementById('single-hue-input'),
+                    singleSatSlider: document.getElementById('single-sat-slider'),
+                    singleSatInput: document.getElementById('single-sat-input'),
+                    singleLitSlider: document.getElementById('single-lit-slider'),
+                    singleLitInput: document.getElementById('single-lit-input'),
+                    commitSingleBtn: document.getElementById('commit-single-btn'),
+                    resetSingleBtn: document.getElementById('reset-single-btn'),
                     undoBtn: document.getElementById('undo-btn'),
                     redoBtn: document.getElementById('redo-btn'),
                     saveStockBtn: document.getElementById('save-stock-btn'),
@@ -1182,6 +1243,10 @@
                         globalHueLabel: '色相調整',
                         globalSatLabel: '彩度調整',
                         globalLitLabel: '明度調整',
+                        singleAdjustment: '単色調整',
+                        singleHueLabel: '色相調整',
+                        singleSatLabel: '彩度調整',
+                        singleLitLabel: '明度調整',
                         colorCountUnit: '色',
                         paletteCategory: '配色カテゴリ',
                         displayMode: '表示モード',
@@ -1350,6 +1415,10 @@
                         globalHueLabel: 'Hue Adjustment',
                         globalSatLabel: 'Chroma Adjustment',
                         globalLitLabel: 'Lightness Adjustment',
+                        singleAdjustment: 'Single Adjustment',
+                        singleHueLabel: 'Hue Adjustment',
+                        singleSatLabel: 'Chroma Adjustment',
+                        singleLitLabel: 'Lightness Adjustment',
                         colorCountUnit: ' colors',
                         paletteCategory: 'Palette Category',
                         displayMode: 'Display Mode',
@@ -1445,6 +1514,59 @@
                 if (this.dom.resetGlobalBtn) {
                     this.dom.resetGlobalBtn.addEventListener('click', () => this.resetGlobalSettings());
                 }
+                if (this.dom.commitSingleBtn) {
+                    this.dom.commitSingleBtn.addEventListener('click', () => this.commitSingleAdjustment());
+                }
+                if (this.dom.resetSingleBtn) {
+                    this.dom.resetSingleBtn.addEventListener('click', () => this.resetSingleSettings());
+                }
+
+                const bindSingleSync = (slider, input, min, max) => {
+                    let startVal = input.value;
+
+                    slider.addEventListener('pointerdown', () => {
+                        startVal = input.value;
+                    });
+                    slider.addEventListener('touchstart', () => {
+                        startVal = input.value;
+                    }, { passive: true });
+
+                    slider.addEventListener('input', (e) => {
+                        input.value = e.target.value;
+                        this.applyGlobalAdjustmentsAndRender(false);
+                    });
+
+                    const handleCommit = () => {
+                        const curVal = input.value;
+                        if (curVal !== startVal) {
+                            this.pushHistory();
+                            startVal = curVal;
+                        }
+                    };
+
+                    slider.addEventListener('change', handleCommit);
+                    slider.addEventListener('pointerup', handleCommit);
+                    slider.addEventListener('touchend', handleCommit);
+
+                    input.addEventListener('input', (e) => {
+                        let converted = this.toHalfWidth(e.target.value);
+                        if (e.target.value !== converted) e.target.value = converted;
+                        let val = parseInt(converted);
+                        if (isNaN(val)) val = 0;
+                        val = Math.max(min, Math.min(max, val));
+                        slider.value = val;
+                        this.applyGlobalAdjustmentsAndRender(false);
+                    });
+                    input.addEventListener('change', (e) => {
+                        let val = parseInt(e.target.value);
+                        if (isNaN(val)) val = 0;
+                        e.target.value = Math.max(min, Math.min(max, val));
+                        this.pushHistory();
+                    });
+                };
+                bindSingleSync(this.dom.singleHueSlider, this.dom.singleHueInput, -180, 180);
+                bindSingleSync(this.dom.singleSatSlider, this.dom.singleSatInput, -100, 100);
+                bindSingleSync(this.dom.singleLitSlider, this.dom.singleLitInput, -100, 100);
 
                 if (this.dom.previewToggleBtn) {
                     this.dom.previewToggleBtn.addEventListener('click', () => {
@@ -1456,6 +1578,108 @@
                         this.dom.previewToggleBtn.style.opacity = this.isPreviewHidden ? '0.4' : '1';
                         this.saveState();
                     });
+                }
+
+                const sidebarPreview = document.getElementById('sidebar-gradient-preview');
+                if (sidebarPreview) {
+                    let isDraggingPreview = false;
+                    let dragStartIndex = -1;
+                    let lastClientY = 0;
+
+                    sidebarPreview.addEventListener('pointerdown', (e) => {
+                        const rect = sidebarPreview.getBoundingClientRect();
+                        const clickY = e.clientY - rect.top;
+                        const height = rect.height;
+                        if (height <= 0) return;
+                        const ratio = Math.max(0, Math.min(1, clickY / height));
+
+                        const ratios = this.currentColors.map(c => c.widthRatio !== undefined ? c.widthRatio : 1);
+                        const totalRatio = ratios.reduce((sum, r) => sum + r, 0) || 1;
+                        let accumulated = 0;
+                        let clickedIndex = 0;
+                        for (let i = 0; i < this.currentColors.length; i++) {
+                            const paneRatio = ratios[i] / totalRatio;
+                            if (ratio <= accumulated + paneRatio || i === this.currentColors.length - 1) {
+                                clickedIndex = i;
+                                break;
+                            }
+                            accumulated += paneRatio;
+                        }
+
+                        this.selectColor(clickedIndex);
+
+                        isDraggingPreview = true;
+                        dragStartIndex = clickedIndex;
+                        lastClientY = e.clientY;
+                        sidebarPreview.setPointerCapture(e.pointerId);
+                        e.preventDefault();
+                    });
+
+                    sidebarPreview.addEventListener('pointermove', (e) => {
+                        if (!isDraggingPreview) return;
+                        const currentY = e.clientY;
+                        const direction = currentY > lastClientY ? 'down' : (currentY < lastClientY ? 'up' : null);
+                        if (currentY !== lastClientY) {
+                            lastClientY = currentY;
+                        }
+
+                        const rect = sidebarPreview.getBoundingClientRect();
+                        const pointerY = currentY - rect.top;
+                        const height = rect.height;
+                        if (height <= 0) return;
+
+                        const ratios = this.currentColors.map(c => c.widthRatio !== undefined ? c.widthRatio : 1);
+                        const totalRatio = ratios.reduce((sum, r) => sum + r, 0) || 1;
+
+                        let acc = 0;
+                        const segments = ratios.map((r, i) => {
+                            const h = (r / totalRatio) * height;
+                            const top = acc;
+                            const bottom = acc + h;
+                            const center = (top + bottom) / 2;
+                            acc = bottom;
+                            return { index: i, top, bottom, height: h, center };
+                        });
+
+                        const currentSeg = segments[dragStartIndex];
+                        if (!currentSeg) return;
+
+                        const h = currentSeg.height;
+                        const dragTop = pointerY - (h / 2);
+                        const dragBottom = dragTop + h;
+                        const dragCenter = (dragTop + dragBottom) / 2;
+
+                        if (direction === 'down' && dragStartIndex < this.currentColors.length - 1) {
+                            const nextSeg = segments[dragStartIndex + 1];
+                            if (nextSeg && (dragBottom >= nextSeg.center || dragCenter >= nextSeg.top)) {
+                                const movedColor = this.currentColors.splice(dragStartIndex, 1)[0];
+                                this.currentColors.splice(dragStartIndex + 1, 0, movedColor);
+                                dragStartIndex += 1;
+                                this.renderPanes();
+                            }
+                        } else if (direction === 'up' && dragStartIndex > 0) {
+                            const prevSeg = segments[dragStartIndex - 1];
+                            if (prevSeg && (dragTop <= prevSeg.center || dragCenter <= prevSeg.bottom)) {
+                                const movedColor = this.currentColors.splice(dragStartIndex, 1)[0];
+                                this.currentColors.splice(dragStartIndex - 1, 0, movedColor);
+                                dragStartIndex -= 1;
+                                this.renderPanes();
+                            }
+                        }
+                    });
+
+                    const endPreviewDrag = (e) => {
+                        if (!isDraggingPreview) return;
+                        isDraggingPreview = false;
+                        try {
+                            sidebarPreview.releasePointerCapture(e.pointerId);
+                        } catch (err) {}
+                        this.renderPanes();
+                        this.pushHistory(this.currentColors);
+                    };
+
+                    sidebarPreview.addEventListener('pointerup', endPreviewDrag);
+                    sidebarPreview.addEventListener('pointercancel', endPreviewDrag);
                 }
 
                 if (this.dom.rulerToggleBtn) {
@@ -2009,7 +2233,11 @@
                 const globalSat = (parseFloat(this.dom.globalSatInput.value) || 0) / 100;
                 const globalLit = (parseFloat(this.dom.globalLitInput.value) || 0) / 100;
 
-                this.currentColors.forEach(c => {
+                const singleHue = parseFloat(this.dom.singleHueInput ? this.dom.singleHueInput.value : 0) || 0;
+                const singleSat = (parseFloat(this.dom.singleSatInput ? this.dom.singleSatInput.value : 0) || 0) / 100;
+                const singleLit = (parseFloat(this.dom.singleLitInput ? this.dom.singleLitInput.value : 0) || 0) / 100;
+
+                this.currentColors.forEach((c, index) => {
                     if (!c.originalOklch) {
                         c.originalOklch = { ...c.oklch };
                     }
@@ -2019,6 +2247,13 @@
                     if (h < 0) h += 360;
                     let c_val = Math.max(0.0, Math.min(1.0, orig.c * (1.0 + globalSat)));
                     let l = Math.max(0.0, Math.min(1.0, orig.l + globalLit));
+
+                    if (index === this.selectedColorIndex) {
+                        h = (h + singleHue) % 360;
+                        if (h < 0) h += 360;
+                        c_val = Math.max(0.0, Math.min(1.0, c_val * (1.0 + singleSat)));
+                        l = Math.max(0.0, Math.min(1.0, l + singleLit));
+                    }
 
                     const oklch = { l, c: c_val, h };
                     const rgb = ColorMath.oklchToRgb(oklch.l, oklch.c, oklch.h);
@@ -2031,6 +2266,65 @@
                 this.renderPanes();
                 if (recordHistory) {
                     this.pushHistory(this.currentColors);
+                }
+            }
+
+            selectColor(index) {
+                if (this.selectedColorIndex !== index) {
+                    this.commitSingleAdjustment();
+                    this.selectedColorIndex = index;
+                    this.updateSingleColorIndexLabel();
+                }
+            }
+
+            commitSingleAdjustment() {
+                const h = parseFloat(this.dom.singleHueInput ? this.dom.singleHueInput.value : 0) || 0;
+                const s = parseFloat(this.dom.singleSatInput ? this.dom.singleSatInput.value : 0) || 0;
+                const l = parseFloat(this.dom.singleLitInput ? this.dom.singleLitInput.value : 0) || 0;
+
+                if (h === 0 && s === 0 && l === 0) return;
+
+                if (this.selectedColorIndex >= 0 && this.selectedColorIndex < this.currentColors.length) {
+                    const c = this.currentColors[this.selectedColorIndex];
+                    if (c) {
+                        const globalHue = parseFloat(this.dom.globalHueInput.value) || 0;
+                        const globalSat = (parseFloat(this.dom.globalSatInput.value) || 0) / 100;
+                        const globalLit = (parseFloat(this.dom.globalLitInput.value) || 0) / 100;
+
+                        let baseH = (c.oklch.h - globalHue) % 360;
+                        if (baseH < 0) baseH += 360;
+                        let baseC = Math.max(0.0, Math.min(1.0, c.oklch.c / (1.0 + globalSat)));
+                        let baseL = Math.max(0.0, Math.min(1.0, c.oklch.l - globalLit));
+
+                        c.originalOklch = { l: baseL, c: baseC, h: baseH };
+                    }
+                }
+
+                if (this.dom.singleHueSlider) this.dom.singleHueSlider.value = 0;
+                if (this.dom.singleHueInput) this.dom.singleHueInput.value = 0;
+                if (this.dom.singleSatSlider) this.dom.singleSatSlider.value = 0;
+                if (this.dom.singleSatInput) this.dom.singleSatInput.value = 0;
+                if (this.dom.singleLitSlider) this.dom.singleLitSlider.value = 0;
+                if (this.dom.singleLitInput) this.dom.singleLitInput.value = 0;
+
+                this.pushHistory(this.currentColors);
+            }
+
+            resetSingleSettings() {
+                if (this.dom.singleHueSlider) this.dom.singleHueSlider.value = 0;
+                if (this.dom.singleHueInput) this.dom.singleHueInput.value = 0;
+                if (this.dom.singleSatSlider) this.dom.singleSatSlider.value = 0;
+                if (this.dom.singleSatInput) this.dom.singleSatInput.value = 0;
+                if (this.dom.singleLitSlider) this.dom.singleLitSlider.value = 0;
+                if (this.dom.singleLitInput) this.dom.singleLitInput.value = 0;
+
+                this.applyGlobalAdjustmentsAndRender(true);
+            }
+
+            updateSingleColorIndexLabel() {
+                const label = document.getElementById('single-color-index-label');
+                if (label) {
+                    label.textContent = `${this.selectedColorIndex + 1}`;
                 }
             }
 
@@ -2368,6 +2662,8 @@
                         }
                         if (e.pointerType === 'mouse' && e.button !== 0) return;
 
+                        this.selectColor(index); // ペイン領域に触れたとき選択状態を更新
+
                         isDraggingPane = true;
                         this.draggingPaneIndex = index; // 追加: 現在ドラッグ中のインデックスを保持
                         pane.setPointerCapture(e.pointerId);
@@ -2499,6 +2795,7 @@
                     lockBtn.title = colorObj.locked ? 'ロック中 (クリックで解除)' : 'クリックで色をロック';
                     lockBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
+                        this.commitSingleAdjustment(); // ロックボタン押下時は例外として触れるに含まれないが、単色調整のコミットを行う
 
                         // オブジェクト更新後に、確実に対象の locked 状態を反転させる
                         if (this.currentColors[index]) {
@@ -2545,6 +2842,14 @@
                         e.stopPropagation();
                     });
 
+                    input.addEventListener('focus', () => {
+                        this.selectColor(index);
+                    });
+                    input.addEventListener('pointerdown', (e) => {
+                        e.stopPropagation();
+                        this.selectColor(index);
+                        pane.draggable = false; // 文字選択中はペインのドラッグを無効化
+                    });
                     input.addEventListener('input', (e) => this.handleColorEditInput(index, e.target.value, pane));
                     input.addEventListener('change', () => {
                         pane.draggable = true;
@@ -2555,7 +2860,10 @@
                     const copyBtn = document.createElement('button');
                     copyBtn.textContent = 'Copy';
                     copyBtn.className = 'text-xs uppercase tracking-widest opacity-60 font-semibold mb-2 md:mb-4 hover:opacity-100 transition-opacity cursor-pointer';
-                    copyBtn.addEventListener('click', () => this.copyToClipboard(this.getSimulatedHex(this.currentColors[index])));
+                    copyBtn.addEventListener('click', () => {
+                        this.selectColor(index);
+                        this.copyToClipboard(this.getSimulatedHex(this.currentColors[index]));
+                    });
 
                     pane.appendChild(input);
                     pane.appendChild(copyBtn);
@@ -3260,6 +3568,10 @@
                 document.getElementById('txt-global-hue-label').textContent = t.globalHueLabel;
                 document.getElementById('txt-global-sat-label').textContent = t.globalSatLabel;
                 document.getElementById('txt-global-lit-label').textContent = t.globalLitLabel;
+                document.getElementById('txt-single-adjustment-title').textContent = t.singleAdjustment;
+                document.getElementById('txt-single-hue-label').textContent = t.singleHueLabel;
+                document.getElementById('txt-single-sat-label').textContent = t.singleSatLabel;
+                document.getElementById('txt-single-lit-label').textContent = t.singleLitLabel;
                 document.getElementById('color-count-value').textContent = this.getColorCountText(this.dom.colorCountSlider.value);
                 document.getElementById('txt-palette-category').textContent = t.paletteCategory;
                 document.getElementById('txt-display-mode').textContent = t.displayMode;
