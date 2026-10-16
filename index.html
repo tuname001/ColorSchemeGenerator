@@ -2557,22 +2557,32 @@
                     webGeoGrid.style.borderColor = c2;
                 }
 
+                // サブフィーチャーアイコンおよび幾何学図形の背景色・RGB定義
+                const iconBgColor1 = len === 5 ? colors[2] : (len === 4 ? colors[2] : (len === 6 ? colors[3] : (len === 2 ? c0 : c2)));
+                const iconRgb1 = len === 5 ? rgb2 : (len === 4 ? rgb2 : (len === 6 ? rgb3 : (len === 2 ? rgb0 : rgb2)));
+
+                const iconBgColor2 = len === 5 ? colors[3] : (len === 4 ? colors[3] : (len === 6 ? colors[4] : (len === 3 ? iconBgColor1 : (len === 2 ? c0 : c3))));
+                const iconRgb2 = len === 5 ? rgb3 : (len === 4 ? rgb3 : (len === 6 ? rgb4 : (len === 3 ? iconRgb1 : (len === 2 ? rgb0 : rgb3))));
+
+                const iconBgColor3 = len === 5 ? colors[4] : (len === 4 ? colors[3] : (len === 6 ? colors[5] : (len === 3 ? iconBgColor1 : (len === 2 ? c0 : c3))));
+                const iconRgb3 = len === 5 ? rgb4 : (len === 4 ? rgb3 : (len === 6 ? rgb5 : (len === 3 ? iconRgb1 : (len === 2 ? rgb0 : rgb3))));
+
                 // 幾何学図形アイコン群
                 if (shape1) {
-                    shape1.style.backgroundColor = len === 6 ? colors[3] : c2;
-                    const rgb_s1 = len === 6 ? rgb3 : rgb2;
+                    shape1.style.backgroundColor = iconBgColor1;
+                    const rgb_s1 = iconRgb1;
                     shape1.style.color = len === 3 ? colors[0] : (useColorText ? colors[0] : ColorMath.getAccessibleTextColor(rgb_s1[0], rgb_s1[1], rgb_s1[2]));
                 }
                 if (shape2) {
-                    const shapeColor2 = len === 6 ? colors[4] : (len === 3 ? shape1.style.backgroundColor : c2);
+                    const shapeColor2 = iconBgColor2;
                     shape2.style.backgroundColor = shapeColor2;
-                    const rgb_s2 = len === 6 ? rgb4 : rgb2;
+                    const rgb_s2 = iconRgb2;
                     shape2.style.color = len === 3 ? colors[0] : (useColorText ? (len === 3 ? shape1.style.color : colors[1 % len]) : ColorMath.getAccessibleTextColor(rgb_s2[0], rgb_s2[1], rgb_s2[2]));
                 }
                 if (shape3) {
-                    const shapeColor3 = len === 6 ? colors[5] : (len === 3 ? shape1.style.backgroundColor : c2);
+                    const shapeColor3 = iconBgColor3;
                     shape3.style.backgroundColor = shapeColor3;
-                    const rgb_s3 = len === 6 ? rgb5 : rgb2;
+                    const rgb_s3 = iconRgb3;
                     shape3.style.color = len === 3 ? colors[0] : (useColorText ? (len === 3 ? shape1.style.color : colors[2 % len]) : ColorMath.getAccessibleTextColor(rgb_s3[0], rgb_s3[1], rgb_s3[2]));
                 }
 
@@ -2586,8 +2596,6 @@
                 applyCardStyle(featCard1, c1, c2);
                 featCard1.style.color = useColorText ? colors[2 % len] : cardTextColor;
                 if (featIcon1) {
-                    const iconBgColor1 = len === 6 ? colors[3] : (len === 2 ? c0 : c2);
-                    const iconRgb1 = len === 6 ? rgb3 : (len === 2 ? rgb0 : rgb2);
                     featIcon1.style.backgroundColor = iconBgColor1;
                     featIcon1.style.color = useColorText ? colors[0] : ColorMath.getAccessibleTextColor(iconRgb1[0], iconRgb1[1], iconRgb1[2]);
                 }
@@ -2595,8 +2603,6 @@
                 applyCardStyle(featCard2, c1, c2);
                 featCard2.style.color = useColorText ? colors[2 % len] : cardTextColor;
                 if (featIcon2) {
-                    const iconBgColor2 = len === 6 ? colors[4] : (len === 3 ? featIcon1.style.backgroundColor : (len === 2 ? c0 : c3));
-                    const iconRgb2 = len === 6 ? rgb4 : (len === 2 ? rgb0 : rgb3);
                     featIcon2.style.backgroundColor = iconBgColor2;
                     featIcon2.style.color = useColorText ? (len === 3 ? colors[0] : colors[1 % len]) : ColorMath.getAccessibleTextColor(iconRgb2[0], iconRgb2[1], iconRgb2[2]);
                 }
@@ -2604,8 +2610,6 @@
                 applyCardStyle(featCard3, c1, c2);
                 featCard3.style.color = useColorText ? colors[2 % len] : cardTextColor;
                 if (featIcon3) {
-                    const iconBgColor3 = len === 6 ? colors[5] : (len === 3 ? featIcon1.style.backgroundColor : (len === 2 ? c0 : c3));
-                    const iconRgb3 = len === 6 ? rgb5 : (len === 2 ? rgb0 : rgb3);
                     featIcon3.style.backgroundColor = iconBgColor3;
                     featIcon3.style.color = useColorText ? (len === 3 ? colors[0] : colors[2 % len]) : ColorMath.getAccessibleTextColor(iconRgb3[0], iconRgb3[1], iconRgb3[2]);
                 }
