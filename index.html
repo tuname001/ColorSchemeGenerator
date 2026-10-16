@@ -2557,15 +2557,25 @@
                     webGeoGrid.style.borderColor = c2;
                 }
 
-                // サブフィーチャーアイコンおよび幾何学図形の背景色・RGB定義
-                const iconBgColor1 = len === 5 ? colors[2] : (len === 4 ? colors[2] : (len === 6 ? colors[3] : (len === 2 ? c0 : c2)));
-                const iconRgb1 = len === 5 ? rgb2 : (len === 4 ? rgb2 : (len === 6 ? rgb3 : (len === 2 ? rgb0 : rgb2)));
+                // 幾何学図形アイコン群の背景色・RGB定義
+                const iconBgColor1 = len === 5 ? colors[2] : (len === 4 ? colors[2] : (len === 6 ? colors[3] : (len === 2 ? c1 : c2)));
+                const iconRgb1 = len === 5 ? rgb2 : (len === 4 ? rgb2 : (len === 6 ? rgb3 : (len === 2 ? rgb1 : rgb2)));
 
-                const iconBgColor2 = len === 5 ? colors[3] : (len === 4 ? colors[3] : (len === 6 ? colors[4] : (len === 3 ? iconBgColor1 : (len === 2 ? c0 : c3))));
-                const iconRgb2 = len === 5 ? rgb3 : (len === 4 ? rgb3 : (len === 6 ? rgb4 : (len === 3 ? iconRgb1 : (len === 2 ? rgb0 : rgb3))));
+                const iconBgColor2 = len === 5 ? colors[3] : (len === 4 ? colors[3] : (len === 6 ? colors[4] : (len === 3 ? iconBgColor1 : (len === 2 ? c1 : c3))));
+                const iconRgb2 = len === 5 ? rgb3 : (len === 4 ? rgb3 : (len === 6 ? rgb4 : (len === 3 ? iconRgb1 : (len === 2 ? rgb1 : rgb3))));
 
-                const iconBgColor3 = len === 5 ? colors[4] : (len === 4 ? colors[3] : (len === 6 ? colors[5] : (len === 3 ? iconBgColor1 : (len === 2 ? c0 : c3))));
-                const iconRgb3 = len === 5 ? rgb4 : (len === 4 ? rgb3 : (len === 6 ? rgb5 : (len === 3 ? iconRgb1 : (len === 2 ? rgb0 : rgb3))));
+                const iconBgColor3 = len === 5 ? colors[4] : (len === 4 ? colors[3] : (len === 6 ? colors[5] : (len === 3 ? iconBgColor1 : (len === 2 ? c1 : c3))));
+                const iconRgb3 = len === 5 ? rgb4 : (len === 4 ? rgb3 : (len === 6 ? rgb5 : (len === 3 ? iconRgb1 : (len === 2 ? rgb1 : rgb3))));
+
+                // サブフィーチャーカードアイコン群の背景色・RGB定義（01, 02, 03用）
+                const featIconBgColor1 = len === 5 ? colors[2] : (len === 4 ? colors[2] : (len === 6 ? colors[3] : (len === 2 ? c0 : c2)));
+                const featIconRgb1 = len === 5 ? rgb2 : (len === 4 ? rgb2 : (len === 6 ? rgb3 : (len === 2 ? rgb0 : rgb2)));
+
+                const featIconBgColor2 = len === 5 ? colors[3] : (len === 4 ? colors[3] : (len === 6 ? colors[4] : (len === 3 ? featIconBgColor1 : (len === 2 ? c0 : c3))));
+                const featIconRgb2 = len === 5 ? rgb3 : (len === 4 ? rgb3 : (len === 6 ? rgb4 : (len === 3 ? featIconRgb1 : (len === 2 ? rgb0 : rgb3))));
+
+                const featIconBgColor3 = len === 5 ? colors[4] : (len === 4 ? colors[3] : (len === 6 ? colors[5] : (len === 3 ? featIconBgColor1 : (len === 2 ? c0 : c3))));
+                const featIconRgb3 = len === 5 ? rgb4 : (len === 4 ? rgb3 : (len === 6 ? rgb5 : (len === 3 ? featIconRgb1 : (len === 2 ? rgb0 : rgb3))));
 
                 // 幾何学図形アイコン群
                 if (shape1) {
@@ -2596,22 +2606,22 @@
                 applyCardStyle(featCard1, c1, c2);
                 featCard1.style.color = useColorText ? colors[2 % len] : cardTextColor;
                 if (featIcon1) {
-                    featIcon1.style.backgroundColor = iconBgColor1;
-                    featIcon1.style.color = useColorText ? colors[0] : ColorMath.getAccessibleTextColor(iconRgb1[0], iconRgb1[1], iconRgb1[2]);
+                    featIcon1.style.backgroundColor = featIconBgColor1;
+                    featIcon1.style.color = useColorText ? colors[0] : ColorMath.getAccessibleTextColor(featIconRgb1[0], featIconRgb1[1], featIconRgb1[2]);
                 }
 
                 applyCardStyle(featCard2, c1, c2);
                 featCard2.style.color = useColorText ? colors[2 % len] : cardTextColor;
                 if (featIcon2) {
-                    featIcon2.style.backgroundColor = iconBgColor2;
-                    featIcon2.style.color = useColorText ? (len === 3 ? colors[0] : colors[1 % len]) : ColorMath.getAccessibleTextColor(iconRgb2[0], iconRgb2[1], iconRgb2[2]);
+                    featIcon2.style.backgroundColor = featIconBgColor2;
+                    featIcon2.style.color = useColorText ? (len === 3 ? colors[0] : colors[1 % len]) : ColorMath.getAccessibleTextColor(featIconRgb2[0], featIconRgb2[1], featIconRgb2[2]);
                 }
 
                 applyCardStyle(featCard3, c1, c2);
                 featCard3.style.color = useColorText ? colors[2 % len] : cardTextColor;
                 if (featIcon3) {
-                    featIcon3.style.backgroundColor = iconBgColor3;
-                    featIcon3.style.color = useColorText ? (len === 3 ? colors[0] : colors[2 % len]) : ColorMath.getAccessibleTextColor(iconRgb3[0], iconRgb3[1], iconRgb3[2]);
+                    featIcon3.style.backgroundColor = featIconBgColor3;
+                    featIcon3.style.color = useColorText ? (len === 3 ? colors[0] : colors[2 % len]) : ColorMath.getAccessibleTextColor(featIconRgb3[0], featIconRgb3[1], featIconRgb3[2]);
                 }
             }
 
@@ -3919,6 +3929,25 @@
                         }
 
                         this.currentColors = JSON.parse(JSON.stringify(stock.colors));
+
+                        const count = parseInt(this.dom.colorCountSlider.value);
+                        if (count === 2 && this.isWebColorTextMode) {
+                            this.isWebColorTextMode = false;
+                            if (this.dom.webSwitchBtn) {
+                                this.dom.webSwitchBtn.style.opacity = '';
+                                this.dom.webSwitchBtn.style.boxShadow = '';
+                            }
+                        }
+                        if (this.dom.webPreviewScreen && !this.dom.webPreviewScreen.classList.contains('hidden')) {
+                            if (this.dom.webSwitchBtn) {
+                                if (count === 2) {
+                                    this.dom.webSwitchBtn.classList.add('hidden');
+                                } else {
+                                    this.dom.webSwitchBtn.classList.remove('hidden');
+                                }
+                            }
+                        }
+
                         this.renderPanes();
                         this.pushHistory(this.currentColors);
                     });
