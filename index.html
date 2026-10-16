@@ -454,6 +454,12 @@
                 </svg>
                 <span id="txt-web">Web</span>
             </button>
+            <button id="web-switch-btn" style="background-color: #3B82F6; border-color: rgba(59, 130, 246, 0.3);" class="hidden h-11 w-24 backdrop-blur-md text-white font-bold text-xs tracking-widest rounded-full shadow-lg transition-all hover:scale-105 cursor-pointer flex items-center justify-center gap-2 uppercase">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                <span id="txt-web-switch">切替</span>
+            </button>
         </div>
 
         <!-- 色領域(ペイン)コンテナ -->
@@ -467,7 +473,10 @@
             <!-- ナビゲーションバー -->
             <header id="web-header" class="w-full px-8 py-5 flex items-center justify-between border-b flex-shrink-0">
                 <div class="flex items-center gap-3">
-                    <div id="web-logo-icon" class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shadow-md">✦</div>
+                    <div id="web-logo-icon" class="w-9 h-9 rounded-xl relative flex items-center justify-center font-bold text-sm shadow-md">
+                        <div class="absolute inset-0 rounded-xl" id="web-logo-bg"></div>
+                        <div class="relative">✦</div>
+                    </div>
                     <span id="web-brand-name" class="font-extrabold tracking-wider text-lg">BrandStudio</span>
                 </div>
                 <nav class="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-widest opacity-80">
@@ -491,7 +500,7 @@
                         <p id="web-text" class="text-sm md:text-base leading-relaxed opacity-90 max-w-xl">現在のパレットに基づき、左側の深いトーンから右側の明るいトーンまでの階調がWebサイト全体に完璧に調和して反映されます。</p>
                         <div class="flex flex-wrap gap-4 pt-2">
                             <button id="web-primary-btn" class="px-7 py-3.5 rounded-2xl font-bold text-sm shadow-xl transition-transform hover:scale-105 cursor-pointer">エクスプローラー</button>
-                            <button id="web-secondary-btn" class="px-7 py-3.5 rounded-2xl font-bold text-sm border shadow-sm transition-all cursor-pointer">ドキュメント</button>
+                            <button id="web-secondary-btn" class="px-7 py-3.5 rounded-2xl font-bold text-sm border shadow-sm cursor-pointer">ドキュメント</button>
                         </div>
                     </div>
                     
@@ -1046,6 +1055,7 @@
                 this.isSplitMode = false;
                 this.isPreviewHidden = false; // デフォルトは表示された状態
                 this.isRulerVisible = false; // デフォルトはオフ（非表示）
+                this.isWebColorTextMode = false; // Web文字色切替モード
                 this.touchStartX = 0;
                 this.touchStartY = 0;
 
@@ -1128,6 +1138,7 @@
                     resetWidthsBtn: document.getElementById('reset-widths-btn'),
                     rulerToggleBtn: document.getElementById('ruler-toggle-btn'),
                     webBtn: document.getElementById('web-btn'),
+                    webSwitchBtn: document.getElementById('web-switch-btn'),
                     webPreviewScreen: document.getElementById('web-preview-screen'),
                     previewToggleBtn: document.getElementById('preview-toggle-btn')
                 };
@@ -1205,6 +1216,7 @@
                         resetWidths: '幅をリセット',
                         save: '保存',
                         web: 'Web',
+                        webSwitch: '切替',
                         generate: '生成',
                         random: 'ランダム',
                         update: '更新',
@@ -1351,6 +1363,7 @@
                         resetWidths: 'Reset Widths',
                         save: 'Save',
                         web: 'Web',
+                        webSwitch: 'Switch',
                         generate: 'Generate',
                         random: 'Random',
                         update: 'Update',
@@ -1487,7 +1500,24 @@
                     }
                 });
                 this.dom.colorCountSlider.addEventListener('input', (e) => {
-                    this.dom.colorCountValue.textContent = this.getColorCountText(e.target.value);
+                    const count = parseInt(e.target.value);
+                    this.dom.colorCountValue.textContent = this.getColorCountText(count);
+                    if (count === 2 && this.isWebColorTextMode) {
+                        this.isWebColorTextMode = false;
+                        if (this.dom.webSwitchBtn) {
+                            this.dom.webSwitchBtn.style.opacity = '';
+                            this.dom.webSwitchBtn.style.boxShadow = '';
+                        }
+                    }
+                    if (this.dom.webPreviewScreen && !this.dom.webPreviewScreen.classList.contains('hidden')) {
+                        if (this.dom.webSwitchBtn) {
+                            if (count === 2) {
+                                this.dom.webSwitchBtn.classList.add('hidden');
+                            } else {
+                                this.dom.webSwitchBtn.classList.remove('hidden');
+                            }
+                        }
+                    }
                     this.updateSubModes();
                     this.generateNewPalette(true, false);
                 });
@@ -1613,9 +1643,34 @@
                 if (this.dom.webBtn) {
                     this.dom.webBtn.addEventListener('click', () => {
                         this.dom.webPreviewScreen.classList.toggle('hidden');
+                        const count = parseInt(this.dom.colorCountSlider.value);
                         if (!this.dom.webPreviewScreen.classList.contains('hidden')) {
                             this.updateWebPreviewColors();
+                            if (this.dom.webSwitchBtn && count > 2) {
+                                this.dom.webSwitchBtn.classList.remove('hidden');
+                            } else if (this.dom.webSwitchBtn) {
+                                this.dom.webSwitchBtn.classList.add('hidden');
+                            }
+                        } else {
+                            if (this.dom.webSwitchBtn) this.dom.webSwitchBtn.classList.add('hidden');
                         }
+                        this.pushHistory();
+                    });
+                }
+
+                if (this.dom.webSwitchBtn) {
+                    this.dom.webSwitchBtn.addEventListener('click', () => {
+                        const count = parseInt(this.dom.colorCountSlider.value);
+                        if (count <= 2) return; // 色数2の時は無効
+                        this.isWebColorTextMode = !this.isWebColorTextMode;
+                        if (this.isWebColorTextMode) {
+                            this.dom.webSwitchBtn.style.opacity = '1';
+                            this.dom.webSwitchBtn.style.boxShadow = '0 0 15px rgba(59, 130, 246, 0.6)';
+                        } else {
+                            this.dom.webSwitchBtn.style.opacity = '';
+                            this.dom.webSwitchBtn.style.boxShadow = '';
+                        }
+                        this.updateWebPreviewColors();
                         this.pushHistory();
                     });
                 }
@@ -2129,7 +2184,14 @@
                 webPreview.style.backgroundColor = c0;
                 const rgb0 = this.currentColors[0].rgb;
                 const baseTextColor = ColorMath.getAccessibleTextColor(rgb0[0], rgb0[1], rgb0[2]);
-                webPreview.style.color = baseTextColor;
+                
+                // 文字色カラーモードがONかつ色数が3以上の場合のパレット文字色割り当て（1色目背景の部分と2色目背景の部分でそれぞれ統一）
+                const useColorText = this.isWebColorTextMode && len > 2;
+                const bg1TextColor = useColorText ? colors[1 % len] : baseTextColor; // 1色目背景(c0)の上の文字色
+                const bg2TextColor = useColorText ? colors[2 % len] : baseTextColor; // 2色目背景(c1)の上の文字色
+                const bg3TextColor = useColorText ? colors[2 % len] : baseTextColor; // 3色目 (BrandStudio & タイトル用)
+
+                webPreview.style.color = bg1TextColor;
 
                 // ヘルパー：要素に背景色とアクセシブルな文字色を適用
                 const applyCardStyle = (el, bgColor, borderColor) => {
@@ -2138,55 +2200,71 @@
                     if (borderColor) el.style.borderColor = borderColor;
                 };
 
-                // ヘッダー
+                // ヘッダー (1色目背景 c0)
                 if (webHeader) {
                     webHeader.style.backgroundColor = c0;
                     webHeader.style.borderColor = c1;
                 }
                 if (webLogoIcon) {
-                    webLogoIcon.style.backgroundColor = c2;
-                    const rgb2 = this.currentColors[Math.min(2, len - 1)].rgb;
-                    webLogoIcon.style.color = ColorMath.getAccessibleTextColor(rgb2[0], rgb2[1], rgb2[2]);
+                    const webLogoBg = document.getElementById('web-logo-bg');
+                    if (webLogoBg) webLogoBg.style.backgroundColor = c1;
+                    webLogoIcon.style.backgroundColor = 'transparent';
+                    webLogoIcon.style.color = c2;
                 }
-                if (webBrandName) webBrandName.style.color = baseTextColor;
+                if (webBrandName) webBrandName.style.color = bg3TextColor;
 
                 if (webNavBtn) {
                     webNavBtn.style.backgroundColor = c1;
                     const rgb1 = this.currentColors[Math.min(1, len - 1)].rgb;
-                    webNavBtn.style.color = ColorMath.getAccessibleTextColor(rgb1[0], rgb1[1], rgb1[2]);
+                    webNavBtn.style.color = useColorText ? colors[2 % len] : ColorMath.getAccessibleTextColor(rgb1[0], rgb1[1], rgb1[2]);
                 }
 
-                // バッジ
+                // バッジ (2色目背景 c1)
                 if (webBadge) {
                     webBadge.style.backgroundColor = c1;
                     const rgb1 = this.currentColors[Math.min(1, len - 1)].rgb;
-                    webBadge.style.color = ColorMath.getAccessibleTextColor(rgb1[0], rgb1[1], rgb1[2]);
+                    webBadge.style.color = useColorText ? colors[2 % len] : ColorMath.getAccessibleTextColor(rgb1[0], rgb1[1], rgb1[2]);
                     webBadge.style.borderColor = c2;
                 }
                 if (webBadgeDot) webBadgeDot.style.backgroundColor = c3;
 
-                // ヒーローテキスト
-                if (webTitle) webTitle.style.color = baseTextColor;
-                if (webText) webText.style.color = baseTextColor;
+                // ヒーローテキスト (1色目背景 c0)
+                if (webTitle) webTitle.style.color = bg3TextColor;
+                if (webText) webText.style.color = bg1TextColor;
+
+                const navItems = document.querySelectorAll('#web-header nav span');
+                navItems.forEach((item) => {
+                    item.style.color = bg1TextColor;
+                });
+
+                // カード内部のタイトル・説明文 (2色目背景 c1)
+                const featTitles = document.querySelectorAll('[id^="web-feat-title-"]');
+                featTitles.forEach((item) => {
+                    item.style.color = bg2TextColor;
+                });
+
+                const featDescs = document.querySelectorAll('[id^="web-feat-desc-"]');
+                featDescs.forEach((item) => {
+                    item.style.color = bg2TextColor;
+                });
 
                 // ボタン
                 if (btnPrimary) {
                     const primaryColor = colors[Math.min(len - 1, 5)];
                     btnPrimary.style.backgroundColor = primaryColor;
                     const pRgb = this.currentColors[Math.min(len - 1, 5)].rgb;
-                    btnPrimary.style.color = ColorMath.getAccessibleTextColor(pRgb[0], pRgb[1], pRgb[2]);
+                    btnPrimary.style.color = useColorText ? colors[0] : ColorMath.getAccessibleTextColor(pRgb[0], pRgb[1], pRgb[2]);
                 }
 
                 if (btnSecondary) {
                     btnSecondary.style.borderColor = c2;
-                    btnSecondary.style.color = baseTextColor;
+                    btnSecondary.style.color = useColorText ? colors[1 % len] : baseTextColor;
                     btnSecondary.style.backgroundColor = 'transparent';
                 }
 
-                // 右側ヒーローカード
+                // 右側ヒーローカード (2色目背景 c1)
                 applyCardStyle(webHeroCard, c1, c2);
-                const rgb1 = this.currentColors[Math.min(1, len - 1)].rgb;
-                webHeroCard.style.color = ColorMath.getAccessibleTextColor(rgb1[0], rgb1[1], rgb1[2]);
+                webHeroCard.style.color = bg2TextColor;
 
                 if (webGeoGrid) {
                     webGeoGrid.style.backgroundColor = c0;
@@ -2195,21 +2273,21 @@
 
                 // 幾何学図形アイコン群
                 if (shape1) {
-                    shape1.style.backgroundColor = c2;
-                    const rgb2 = this.currentColors[Math.min(2, len - 1)].rgb;
-                    shape1.style.color = ColorMath.getAccessibleTextColor(rgb2[0], rgb2[1], rgb2[2]);
+                    shape1.style.backgroundColor = len === 6 ? colors[3] : c2;
+                    const rgb2 = len === 6 ? this.currentColors[3].rgb : this.currentColors[Math.min(2, len - 1)].rgb;
+                    shape1.style.color = len === 3 ? colors[0] : (useColorText ? colors[0] : ColorMath.getAccessibleTextColor(rgb2[0], rgb2[1], rgb2[2]));
                 }
                 if (shape2) {
-                    const shapeColor2 = colors[Math.min(3, len - 1)];
+                    const shapeColor2 = len === 6 ? colors[4] : (len === 3 ? shape1.style.backgroundColor : colors[Math.min(3, len - 1)]);
                     shape2.style.backgroundColor = shapeColor2;
-                    const rgb3 = this.currentColors[Math.min(3, len - 1)].rgb;
-                    shape2.style.color = ColorMath.getAccessibleTextColor(rgb3[0], rgb3[1], rgb3[2]);
+                    const rgb3 = len === 6 ? this.currentColors[4].rgb : this.currentColors[Math.min(3, len - 1)].rgb;
+                    shape2.style.color = len === 3 ? colors[0] : (useColorText ? (len === 3 ? shape1.style.color : colors[1 % len]) : ColorMath.getAccessibleTextColor(rgb3[0], rgb3[1], rgb3[2]));
                 }
                 if (shape3) {
-                    const shapeColor3 = colors[Math.min(4, len - 1) || len - 1];
+                    const shapeColor3 = len === 6 ? colors[5] : (len === 3 ? shape1.style.backgroundColor : colors[Math.min(4, len - 1) || len - 1]);
                     shape3.style.backgroundColor = shapeColor3;
-                    const rgb4 = this.currentColors[Math.min(4, len - 1) || len - 1].rgb;
-                    shape3.style.color = ColorMath.getAccessibleTextColor(rgb4[0], rgb4[1], rgb4[2]);
+                    const rgb4 = len === 6 ? this.currentColors[5].rgb : this.currentColors[Math.min(4, len - 1) || len - 1].rgb;
+                    shape3.style.color = len === 3 ? colors[0] : (useColorText ? (len === 3 ? shape1.style.color : colors[2 % len]) : ColorMath.getAccessibleTextColor(rgb4[0], rgb4[1], rgb4[2]));
                 }
 
                 if (dot1) dot1.style.backgroundColor = c1;
@@ -2220,29 +2298,29 @@
 
                 // サブフィーチャーカード群（2〜6色に完全対応）
                 applyCardStyle(featCard1, c1, c2);
-                featCard1.style.color = ColorMath.getAccessibleTextColor(rgb1[0], rgb1[1], rgb1[2]);
+                featCard1.style.color = bg2TextColor;
                 if (featIcon1) {
-                    featIcon1.style.backgroundColor = c2;
-                    const rgb2 = this.currentColors[Math.min(2, len - 1)].rgb;
-                    featIcon1.style.color = ColorMath.getAccessibleTextColor(rgb2[0], rgb2[1], rgb2[2]);
+                    featIcon1.style.backgroundColor = len === 6 ? colors[3] : c2;
+                    const rgb2 = len === 6 ? this.currentColors[3].rgb : this.currentColors[Math.min(2, len - 1)].rgb;
+                    featIcon1.style.color = len === 3 ? colors[0] : (useColorText ? colors[0] : ColorMath.getAccessibleTextColor(rgb2[0], rgb2[1], rgb2[2]));
                 }
 
                 applyCardStyle(featCard2, c1, c2);
-                featCard2.style.color = ColorMath.getAccessibleTextColor(rgb1[0], rgb1[1], rgb1[2]);
+                featCard2.style.color = bg2TextColor;
                 if (featIcon2) {
-                    const iconColor2 = colors[Math.min(3, len - 1)];
+                    const iconColor2 = len === 6 ? colors[4] : (len === 3 ? featIcon1.style.backgroundColor : colors[Math.min(3, len - 1)]);
                     featIcon2.style.backgroundColor = iconColor2;
-                    const rgb3 = this.currentColors[Math.min(3, len - 1)].rgb;
-                    featIcon2.style.color = ColorMath.getAccessibleTextColor(rgb3[0], rgb3[1], rgb3[2]);
+                    const rgb3 = len === 6 ? this.currentColors[4].rgb : this.currentColors[Math.min(3, len - 1)].rgb;
+                    featIcon2.style.color = len === 3 ? colors[0] : (useColorText ? (len === 3 ? featIcon1.style.color : colors[1 % len]) : ColorMath.getAccessibleTextColor(rgb3[0], rgb3[1], rgb3[2]));
                 }
 
                 applyCardStyle(featCard3, c1, c2);
-                featCard3.style.color = ColorMath.getAccessibleTextColor(rgb1[0], rgb1[1], rgb1[2]);
+                featCard3.style.color = bg2TextColor;
                 if (featIcon3) {
-                    const iconColor3 = colors[Math.min(4, len - 1) || len - 1];
+                    const iconColor3 = len === 6 ? colors[5] : (len === 3 ? featIcon1.style.backgroundColor : colors[Math.min(4, len - 1) || len - 1]);
                     featIcon3.style.backgroundColor = iconColor3;
-                    const rgb4 = this.currentColors[Math.min(4, len - 1) || len - 1].rgb;
-                    featIcon3.style.color = ColorMath.getAccessibleTextColor(rgb4[0], rgb4[1], rgb4[2]);
+                    const rgb4 = len === 6 ? this.currentColors[5].rgb : this.currentColors[Math.min(4, len - 1) || len - 1].rgb;
+                    featIcon3.style.color = len === 3 ? colors[0] : (useColorText ? (len === 3 ? featIcon1.style.color : colors[2 % len]) : ColorMath.getAccessibleTextColor(rgb4[0], rgb4[1], rgb4[2]));
                 }
             }
 
@@ -2831,7 +2909,8 @@
                     currentLang: this.currentLang,
                     exportShareSelect: this.dom.exportShareSelect ? this.dom.exportShareSelect.value : 'url',
                     visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal',
-                    webPreviewVisible: this.dom.webPreviewScreen ? !this.dom.webPreviewScreen.classList.contains('hidden') : false
+                    webPreviewVisible: this.dom.webPreviewScreen ? !this.dom.webPreviewScreen.classList.contains('hidden') : false,
+                    isWebColorTextMode: this.isWebColorTextMode
                 };
                 localStorage.setItem(CONFIG.STATE_STORAGE_KEY, JSON.stringify(state));
             }
@@ -2915,10 +2994,23 @@
                         this.dom.exportShareSelect.value = 'url'; // 初回などのデフォルトをURL共有に設定
                     }
                     if (state.webPreviewVisible !== undefined && this.dom.webPreviewScreen) {
+                        const count = parseInt(this.dom.colorCountSlider.value);
                         if (state.webPreviewVisible) {
                             this.dom.webPreviewScreen.classList.remove('hidden');
+                            if (this.dom.webSwitchBtn && count > 2) {
+                                this.dom.webSwitchBtn.classList.remove('hidden');
+                            }
                         } else {
                             this.dom.webPreviewScreen.classList.add('hidden');
+                            if (this.dom.webSwitchBtn) this.dom.webSwitchBtn.classList.add('hidden');
+                        }
+                    }
+                    if (state.isWebColorTextMode !== undefined) {
+                        this.isWebColorTextMode = state.isWebColorTextMode;
+                        const count = parseInt(this.dom.colorCountSlider.value);
+                        if (this.isWebColorTextMode && count > 2 && this.dom.webSwitchBtn) {
+                            this.dom.webSwitchBtn.style.opacity = '1';
+                            this.dom.webSwitchBtn.style.boxShadow = '0 0 15px rgba(59, 130, 246, 0.6)';
                         }
                     }
 
@@ -2974,7 +3066,8 @@
                     satStep: this.dom.satStepInput.value,
                     litStep: this.dom.litStepInput.value,
                     visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal',
-                    webPreviewVisible: this.dom.webPreviewScreen ? !this.dom.webPreviewScreen.classList.contains('hidden') : false
+                    webPreviewVisible: this.dom.webPreviewScreen ? !this.dom.webPreviewScreen.classList.contains('hidden') : false,
+                    isWebColorTextMode: this.isWebColorTextMode
                 };
                 if (this.historyIndex >= 0 && this.history[this.historyIndex]) {
                     if (JSON.stringify(this.history[this.historyIndex]) === JSON.stringify(currentState)) return;
@@ -3035,11 +3128,27 @@
                     this.dom.visionModeSelect.value = state.visionMode;
                 }
                 if (state.webPreviewVisible !== undefined && this.dom.webPreviewScreen) {
+                    const count = parseInt(this.dom.colorCountSlider.value);
                     if (state.webPreviewVisible) {
                         this.dom.webPreviewScreen.classList.remove('hidden');
+                        if (this.dom.webSwitchBtn && count > 2) {
+                            this.dom.webSwitchBtn.classList.remove('hidden');
+                        }
                         this.updateWebPreviewColors();
                     } else {
                         this.dom.webPreviewScreen.classList.add('hidden');
+                        if (this.dom.webSwitchBtn) this.dom.webSwitchBtn.classList.add('hidden');
+                    }
+                }
+                if (state.isWebColorTextMode !== undefined) {
+                    this.isWebColorTextMode = state.isWebColorTextMode;
+                    const count = parseInt(this.dom.colorCountSlider.value);
+                    if (this.isWebColorTextMode && count > 2 && this.dom.webSwitchBtn) {
+                        this.dom.webSwitchBtn.style.opacity = '1';
+                        this.dom.webSwitchBtn.style.boxShadow = '0 0 15px rgba(59, 130, 246, 0.6)';
+                    } else if (this.dom.webSwitchBtn) {
+                        this.dom.webSwitchBtn.style.opacity = '';
+                        this.dom.webSwitchBtn.style.boxShadow = '';
                     }
                 }
                 this.renderPanes();
@@ -3158,6 +3267,7 @@
                 document.getElementById('txt-stock-list').textContent = t.stockList;
                 document.getElementById('txt-save').textContent = t.save;
                 document.getElementById('txt-web').textContent = t.web;
+                document.getElementById('txt-web-switch').textContent = t.webSwitch;
                 document.getElementById('txt-generate').textContent = t.generate;
                 document.getElementById('txt-random').textContent = t.random;
                 document.getElementById('txt-update').textContent = t.update;
@@ -3822,10 +3932,23 @@
                         this.dom.visionModeSelect.value = state.visionMode;
                     }
                     if (state.webPreviewVisible !== undefined && this.dom.webPreviewScreen) {
+                        const count = parseInt(this.dom.colorCountSlider.value);
                         if (state.webPreviewVisible) {
                             this.dom.webPreviewScreen.classList.remove('hidden');
+                            if (this.dom.webSwitchBtn && count > 2) {
+                                this.dom.webSwitchBtn.classList.remove('hidden');
+                            }
                         } else {
                             this.dom.webPreviewScreen.classList.add('hidden');
+                            if (this.dom.webSwitchBtn) this.dom.webSwitchBtn.classList.add('hidden');
+                        }
+                    }
+                    if (state.isWebColorTextMode !== undefined) {
+                        this.isWebColorTextMode = state.isWebColorTextMode;
+                        const count = parseInt(this.dom.colorCountSlider.value);
+                        if (this.isWebColorTextMode && count > 2 && this.dom.webSwitchBtn) {
+                            this.dom.webSwitchBtn.style.opacity = '1';
+                            this.dom.webSwitchBtn.style.boxShadow = '0 0 15px rgba(59, 130, 246, 0.6)';
                         }
                     }
 
