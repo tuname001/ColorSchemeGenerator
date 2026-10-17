@@ -2633,6 +2633,13 @@
                 const resetWidthsContainer = document.getElementById('reset-widths-container');
                 const topRightControls = document.querySelector('.absolute.top-6.right-6');
                 const bottomActionButtons = document.querySelector('.responsive-action-buttons');
+                const undoRedoBox = topRightControls ? topRightControls.querySelector('div:first-child') : null;
+                const saveStockBtn = document.getElementById('save-stock-btn');
+                const webBtn = document.getElementById('web-btn');
+                const webSwitchBtn = document.getElementById('web-switch-btn');
+                const switchTxt = document.getElementById('txt-web-switch');
+                const switchSvg = webSwitchBtn ? webSwitchBtn.querySelector('svg') : null;
+                const count = parseInt(this.dom.colorCountSlider.value);
 
                 if (hide) {
                     if (openDrawerBtn) openDrawerBtn.classList.add('hidden');
@@ -2642,7 +2649,21 @@
                         resetWidthsContainer.classList.remove('px-1.5', 'gap-1');
                         resetWidthsContainer.classList.add('px-0', 'w-11', 'justify-center');
                     }
-                    if (topRightControls) topRightControls.classList.add('hidden');
+                    if (topRightControls) topRightControls.classList.remove('hidden');
+                    if (undoRedoBox) undoRedoBox.classList.add('hidden');
+                    if (saveStockBtn) saveStockBtn.classList.add('hidden');
+                    if (webBtn) webBtn.classList.add('hidden');
+                    if (webSwitchBtn) {
+                        if (count > 2) {
+                            webSwitchBtn.classList.remove('hidden');
+                            webSwitchBtn.style.cssText = '';
+                            webSwitchBtn.className = 'h-11 w-11 bg-black/40 backdrop-blur-md text-white rounded-full border border-white/20 shadow-lg hover:bg-white/20 transition-none cursor-pointer flex items-center justify-center';
+                            if (switchTxt) switchTxt.classList.add('hidden');
+                            if (switchSvg) switchSvg.className.baseVal = 'h-5 w-5';
+                        } else {
+                            webSwitchBtn.classList.add('hidden');
+                        }
+                    }
                     if (bottomActionButtons) bottomActionButtons.classList.add('hidden');
                 } else {
                     if (openDrawerBtn && window.innerWidth <= 1200) openDrawerBtn.classList.remove('hidden');
@@ -2653,6 +2674,27 @@
                         resetWidthsContainer.classList.remove('px-0', 'w-11', 'justify-center');
                     }
                     if (topRightControls) topRightControls.classList.remove('hidden');
+                    if (undoRedoBox) undoRedoBox.classList.remove('hidden');
+                    if (saveStockBtn) saveStockBtn.classList.remove('hidden');
+                    if (webBtn) webBtn.classList.remove('hidden');
+                    if (webSwitchBtn) {
+                        if (count > 2 && this.dom.webPreviewScreen && !this.dom.webPreviewScreen.classList.contains('hidden')) {
+                            webSwitchBtn.classList.remove('hidden');
+                            webSwitchBtn.style.cssText = 'background-color: #3B82F6; border-color: rgba(59, 130, 246, 0.3);';
+                            webSwitchBtn.className = 'h-11 w-24 backdrop-blur-md text-white font-bold text-xs tracking-widest rounded-full shadow-lg transition-none hover:scale-105 cursor-pointer flex items-center justify-center gap-2 uppercase';
+                            if (this.isWebColorTextMode) {
+                                webSwitchBtn.style.opacity = '1';
+                                webSwitchBtn.style.boxShadow = '0 0 15px rgba(59, 130, 246, 0.6)';
+                            } else {
+                                webSwitchBtn.style.opacity = '';
+                                webSwitchBtn.style.boxShadow = '';
+                            }
+                            if (switchTxt) switchTxt.classList.remove('hidden');
+                            if (switchSvg) switchSvg.className.baseVal = 'h-4 w-4';
+                        } else {
+                            webSwitchBtn.classList.add('hidden');
+                        }
+                    }
                     if (bottomActionButtons) bottomActionButtons.classList.remove('hidden');
                 }
             }
