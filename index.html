@@ -512,7 +512,7 @@
         <div id="color-panes" class="flex w-full h-full z-0"></div>
 
         <!-- 左上：境界線リセットボタン (ハンバーガーボタンと重ならないようにIDで位置制御) -->
-        <div id="reset-widths-container" class="absolute top-6 left-8 flex items-center gap-1 bg-black/40 backdrop-blur-md px-1.5 h-11 rounded-full border border-white/20 shadow-lg z-40 transition-all duration-300 pointer-events-auto" onclick="event.stopPropagation();">
+        <div id="reset-widths-container" class="absolute top-6 left-8 flex items-center gap-1 bg-black/40 backdrop-blur-md px-1.5 h-11 rounded-full border border-white/20 shadow-lg z-40 pointer-events-auto" onclick="event.stopPropagation();">
             <button id="ruler-toggle-btn" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/20 text-white transition-colors cursor-pointer text-sm pointer-events-auto" onclick="event.stopPropagation();" style="opacity: 0.4;" title="メモリ線表示切替">👁</button>
             <button id="reset-widths-btn" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/20 text-white transition-colors cursor-pointer pointer-events-auto" onclick="event.stopPropagation();" title="色領域の比率を均等にリセット">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -2628,18 +2628,30 @@
             toggleWebControls(hide) {
                 this.isWebControlsHidden = hide;
                 const openDrawerBtn = document.getElementById('open-drawer-btn');
+                const rulerToggleBtn = document.getElementById('ruler-toggle-btn');
+                const resetWidthsBtn = document.getElementById('reset-widths-btn');
                 const resetWidthsContainer = document.getElementById('reset-widths-container');
                 const topRightControls = document.querySelector('.absolute.top-6.right-6');
                 const bottomActionButtons = document.querySelector('.responsive-action-buttons');
 
                 if (hide) {
                     if (openDrawerBtn) openDrawerBtn.classList.add('hidden');
-                    if (resetWidthsContainer) resetWidthsContainer.classList.add('hidden');
+                    if (rulerToggleBtn) rulerToggleBtn.classList.add('hidden');
+                    if (resetWidthsBtn) resetWidthsBtn.classList.add('hidden');
+                    if (resetWidthsContainer) {
+                        resetWidthsContainer.classList.remove('px-1.5', 'gap-1');
+                        resetWidthsContainer.classList.add('px-0', 'w-11', 'justify-center');
+                    }
                     if (topRightControls) topRightControls.classList.add('hidden');
                     if (bottomActionButtons) bottomActionButtons.classList.add('hidden');
                 } else {
                     if (openDrawerBtn && window.innerWidth <= 1200) openDrawerBtn.classList.remove('hidden');
-                    if (resetWidthsContainer) resetWidthsContainer.classList.remove('hidden');
+                    if (rulerToggleBtn) rulerToggleBtn.classList.remove('hidden');
+                    if (resetWidthsBtn) resetWidthsBtn.classList.remove('hidden');
+                    if (resetWidthsContainer) {
+                        resetWidthsContainer.classList.add('px-1.5', 'gap-1');
+                        resetWidthsContainer.classList.remove('px-0', 'w-11', 'justify-center');
+                    }
                     if (topRightControls) topRightControls.classList.remove('hidden');
                     if (bottomActionButtons) bottomActionButtons.classList.remove('hidden');
                 }
