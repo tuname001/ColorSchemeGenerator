@@ -524,7 +524,7 @@
         <div id="ruler-container" class="absolute bottom-0 left-0 w-full h-8 pointer-events-none z-1 flex items-end"></div>
 
         <!-- Web画面プレビュー（Huemintブランド風スタイリッシュデザイン） -->
-        <div id="web-preview-screen" class="hidden absolute inset-0 z-30 overflow-y-auto flex flex-col pt-24 pb-36 px-4 md:px-8">
+        <div id="web-preview-screen" class="hidden absolute inset-0 z-30 overflow-y-auto flex flex-col pt-24 pb-36 px-4 md:px-8 cursor-pointer select-none">
             <!-- ナビゲーションバー -->
             <header id="web-header" class="w-full px-8 py-5 flex items-center justify-between border-b flex-shrink-0">
                 <div class="flex items-center gap-3">
@@ -1224,6 +1224,7 @@
                 this.isPreviewHidden = false; // デフォルトは表示された状態
                 this.isRulerVisible = false; // デフォルトはオフ（非表示）
                 this.isWebColorTextMode = false; // Web文字色切替モード
+                this.isWebControlsHidden = false; // Webプレビュー時のコントロール非表示フラグ
                 this.selectedColorIndex = 0; // 選択中のカラーインデックス
                 this.touchStartX = 0;
                 this.touchStartY = 0;
@@ -2159,8 +2160,20 @@
                             }
                         } else {
                             if (this.dom.webSwitchBtn) this.dom.webSwitchBtn.classList.add('hidden');
+                            if (this.isWebControlsHidden) {
+                                this.toggleWebControls(false);
+                            }
                         }
                         this.pushHistory();
+                    });
+                }
+
+                if (this.dom.webPreviewScreen) {
+                    this.dom.webPreviewScreen.addEventListener('click', (e) => {
+                        if (e.target.closest('input') || e.target.closest('select')) {
+                            return;
+                        }
+                        this.toggleWebControls(!this.isWebControlsHidden);
                     });
                 }
 
@@ -2598,6 +2611,26 @@
                 if (this.selectedColorIndex !== index) {
                     this.selectedColorIndex = index;
                     this.updateSingleColorIndexLabel();
+                }
+            }
+
+            toggleWebControls(hide) {
+                this.isWebControlsHidden = hide;
+                const openDrawerBtn = document.getElementById('open-drawer-btn');
+                const resetWidthsContainer = document.getElementById('reset-widths-container');
+                const topRightControls = document.querySelector('.absolute.top-6.right-6');
+                const bottomActionButtons = document.querySelector('.responsive-action-buttons');
+
+                if (hide) {
+                    if (openDrawerBtn) openDrawerBtn.classList.add('hidden');
+                    if (resetWidthsContainer) resetWidthsContainer.classList.add('hidden');
+                    if (topRightControls) topRightControls.classList.add('hidden');
+                    if (bottomActionButtons) bottomActionButtons.classList.add('hidden');
+                } else {
+                    if (openDrawerBtn && window.innerWidth <= 1200) openDrawerBtn.classList.remove('hidden');
+                    if (resetWidthsContainer) resetWidthsContainer.classList.remove('hidden');
+                    if (topRightControls) topRightControls.classList.remove('hidden');
+                    if (bottomActionButtons) bottomActionButtons.classList.remove('hidden');
                 }
             }
 
