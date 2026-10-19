@@ -2699,6 +2699,7 @@
                 this.isWebControlsHidden = hide;
                 const openDrawerBtn = document.getElementById('open-drawer-btn');
                 const rulerToggleBtn = document.getElementById('ruler-toggle-btn');
+                const bulkLockToggleBtn = document.getElementById('bulk-lock-toggle-btn');
                 const resetWidthsBtn = document.getElementById('reset-widths-btn');
                 const resetWidthsContainer = document.getElementById('reset-widths-container');
                 const topRightControls = document.querySelector('.absolute.top-6.right-6');
@@ -2714,6 +2715,7 @@
                 if (hide) {
                     if (openDrawerBtn) openDrawerBtn.classList.add('hidden');
                     if (rulerToggleBtn) rulerToggleBtn.classList.add('hidden');
+                    if (bulkLockToggleBtn) bulkLockToggleBtn.classList.add('hidden');
                     if (resetWidthsBtn) resetWidthsBtn.classList.add('hidden');
                     if (resetWidthsContainer) {
                         resetWidthsContainer.classList.remove('px-1.5', 'gap-1');
@@ -2738,6 +2740,7 @@
                 } else {
                     if (openDrawerBtn && window.innerWidth <= 1200) openDrawerBtn.classList.remove('hidden');
                     if (rulerToggleBtn) rulerToggleBtn.classList.remove('hidden');
+                    if (bulkLockToggleBtn) bulkLockToggleBtn.classList.remove('hidden');
                     if (resetWidthsBtn) resetWidthsBtn.classList.remove('hidden');
                     if (resetWidthsContainer) {
                         resetWidthsContainer.classList.add('px-1.5', 'gap-1');
