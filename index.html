@@ -3597,14 +3597,12 @@
                         }
                     } else {
                         if (i === 0) {
-                            stops.push(`${hexes[i]} ${startPct}%`);
+                            stops.push(`${hexes[i]} 0%`);
                             stops.push(`${hexes[i]} ${midPct}%`);
                         } else if (i === ratios.length - 1) {
-                            stops.push(`${hexes[i]} ${startPct}%`);
                             stops.push(`${hexes[i]} ${midPct}%`);
                             stops.push(`${hexes[i]} 100%`);
                         } else {
-                            stops.push(`${hexes[i]} ${startPct}%`);
                             stops.push(`${hexes[i]} ${midPct}%`);
                         }
                     }
