@@ -461,7 +461,6 @@
                     <option id="opt-png" value="png">パレット画像 (PNG) 出力</option>
                     <option id="opt-square-png" value="square_png">正方形画像 (PNG) 出力</option>
                     <option id="opt-tiling-png" value="tiling_png">タイリング出力 (PNG)</option>
-                    <option id="opt-svg" value="svg">パレット画像 (SVG) 出力</option>
                     <option id="opt-json" value="json">JSONファイル出力</option>
                     <option id="opt-csv" value="csv">CSVファイル出力</option>
                 </select>
@@ -518,9 +517,10 @@
         <!-- 色領域(ペイン)コンテナ -->
         <div id="color-panes" class="flex w-full h-full z-0"></div>
 
-        <!-- 左上：境界線リセットボタン (ハンバーガーボタンと重ならないようにIDで位置制御) -->
+       <!-- 左上：境界線リセットボタン (ハンバーガーボタンと重ならないようにIDで位置制御) -->
         <div id="reset-widths-container" class="absolute top-6 left-8 flex items-center gap-1 bg-black/40 backdrop-blur-md px-1.5 h-11 rounded-full border border-white/20 shadow-lg z-40 pointer-events-auto" onclick="event.stopPropagation();">
             <button id="ruler-toggle-btn" class="w-9 h-9 flex items-center justify-center rounded-full hover-white-bg text-white transition-colors cursor-pointer text-sm pointer-events-auto" onclick="event.stopPropagation();" style="opacity: 0.4;" title="メモリ線表示切替">👁</button>
+            <button id="bulk-lock-toggle-btn" class="w-9 h-9 flex items-center justify-center rounded-full hover-white-bg text-white transition-colors cursor-pointer text-sm pointer-events-auto" onclick="event.stopPropagation();" title="一括ロック / 一括ロック解除">🔓</button>
             <button id="reset-widths-btn" class="w-9 h-9 flex items-center justify-center rounded-full hover-white-bg text-white transition-colors cursor-pointer pointer-events-auto" onclick="event.stopPropagation();" title="色領域の比率を均等にリセット">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
@@ -681,6 +681,7 @@
                         <div class="flex items-start gap-4"><strong id="txt-save-label" class="text-white w-20 flex-shrink-0">保存</strong><span id="txt-save-desc" class="text-gray-300">現在のパレットをサイドバーの「ストック一覧」に保存します（最大20個）。</span></div>
                         <div class="flex items-start gap-4"><strong id="txt-web-btn-label" class="text-white w-20 flex-shrink-0">Web</strong><span id="txt-web-btn-desc" class="text-gray-300">現在の配色を適用したWebサイトUIのライブプレビューを表示します。</span></div>
                         <div class="flex items-start gap-4"><strong id="txt-web-switch-label" class="text-white w-20 flex-shrink-0">切替</strong><span id="txt-web-switch-desc" class="text-gray-300">Webプレビュー時の文字色・デザイン適用ロジックを切り替えます。</span></div>
+                        <div class="flex items-start gap-4"><strong id="txt-bulk-lock-label" class="text-white w-20 flex-shrink-0">一括ロック</strong><span id="txt-bulk-lock-desc" class="text-gray-300">すべての色領域のロック状態を一括で切り替えます。</span></div>
                         <div class="flex items-start gap-4"><strong id="txt-reset-widths-label" class="text-white w-20 flex-shrink-0">幅リセット</strong><span id="txt-reset-widths-desc" class="text-gray-300">変更された各色領域のサイズ比率を均等な初期状態にリセットします。</span></div>
                         <div class="flex items-start gap-4"><strong id="txt-ruler-label" class="text-white w-20 flex-shrink-0">目盛り表示</strong><span id="txt-ruler-desc" class="text-gray-300">画面下部に配色の位置を確認できる目盛り線の表示・非表示を切り替えます。</span></div>
                         <div class="flex items-start gap-4"><strong id="txt-history-label" class="text-white w-20 flex-shrink-0">戻る / 進む</strong><span id="txt-history-desc" class="text-gray-300">配色の変更履歴を一つ前に戻す（Undo）、または一つ後に進める（Redo）ことができます。</span></div>
@@ -780,7 +781,7 @@
                         </div>
                         <div>
                             <strong id="txt-help-export-label" class="text-white block mb-0.5">出力形式</strong>
-                            <p id="txt-help-export-desc" class="text-gray-300 leading-relaxed">共有URL、CSS変数、Tailwind、SCSS、iOS Swift、Android XML、Flutter、HLSL/GLSL、Unity C#、Godot、Three.js、PNG/SVG画像、JSON、CSVに対応しています。</p>
+                            <p id="txt-help-export-desc" class="text-gray-300 leading-relaxed">共有URL、CSS変数、Tailwind、SCSS、iOS Swift、Android XML、Flutter、HLSL/GLSL、Unity C#、Godot、Three.js、PNG画像、JSON、CSVに対応しています。</p>
                         </div>
                     </div>
                 </div>
@@ -1352,7 +1353,7 @@
                             resetGlobal: '調整をリセット',
                             commitSingle: '単色調整を確定（保存）',
                             resetSingle: '単色調整をリセット',
-                            saveStockSidebar: '現在の配色を保存',
+                            saveStockSidebar: 'Current Palette',
                             undo: '一つ前に戻る (Ctrl+Z)',
                             redo: '一つ後に進む (Ctrl+Y)',
                             saveStock: '現在の配色をストックに保存 (Ctrl+S)',
@@ -1363,7 +1364,9 @@
                             update: '左端の色を基準に現在の設定で配色を更新',
                             overwriteStock: '現在の配色で上書き保存',
                             deleteStock: '削除',
-                            dragStock: 'ドラッグして並び替え'
+                            dragStock: 'ドラッグして並び替え',
+                            bulkLock: '一括ロック',
+                            bulkUnlock: '一括ロック解除'
                         },
                         editScreen: '編集画面',
                         webTitle: '次世代のデザインシステムを構築',
@@ -1424,7 +1427,6 @@
                             png: 'パレット画像 (PNG) 出力',
                             square_png: '正方形画像 (PNG) 出力',
                             tiling_png: 'タイリング出力 (PNG)',
-                            svg: 'パレット画像 (SVG) 出力',
                             url: '共有URLコピー',
                             json: 'JSONファイル出力',
                             csv: 'CSVファイル出力'
@@ -1463,6 +1465,8 @@
                             webBtnDesc: '現在の配色を適用したWebサイトUIのライブプレビューを表示します。',
                             webSwitchLabel: '切替',
                             webSwitchDesc: 'Webプレビュー時の文字色・デザイン適用ロジックを切り替えます。',
+                            bulkLockLabel: '一括ロック',
+                            bulkLockDesc: 'すべての色領域のロック状態を一括で切り替えます。',
                             resetWidthsLabel: '幅リセット',
                             resetWidthsDesc: '変更された各色領域のサイズ比率を均等な初期状態にリセットします。',
                             rulerLabel: '目盛り表示',
@@ -1539,7 +1543,7 @@
                             helpStockLabel: 'ストック機能',
                             helpStockDesc: '気に入った配色を最大20個まで保存可能。ドラッグで並べ替え、クリックで再読み込み、上書き保存や削除が可能です。',
                             helpExportLabel: '出力形式',
-                            helpExportDesc: '共有URL、CSS変数、Tailwind、SCSS、iOS Swift、Android XML、Flutter、HLSL/GLSL、Unity C#、Godot、Three.js、PNG/SVG画像、JSON、CSVに対応しています。',
+                            helpExportDesc: '共有URL、CSS変数、Tailwind、SCSS、iOS Swift、Android XML、Flutter、HLSL/GLSL、Unity C#、Godot、Three.js、PNG画像、JSON、CSVに対応しています。',
                             shortcutsTitle: 'ショートカットキー一覧',
                             spaceKey: 'Space',
                             spaceVal: '生成',
@@ -1619,7 +1623,9 @@
                             update: 'Update Palette Keeping Leftmost Color',
                             overwriteStock: 'Overwrite with Current Palette',
                             deleteStock: 'Delete',
-                            dragStock: 'Drag to reorder'
+                            dragStock: 'Drag to reorder',
+                            bulkLock: 'Bulk Lock',
+                            bulkUnlock: 'Bulk Unlock'
                         },
                         editScreen: 'Edit',
                         webTitle: 'Building Next-Gen Design Systems',
@@ -1666,7 +1672,6 @@
                             png: 'Export Palette Image (PNG)',
                             square_png: 'Export Square Image (PNG)',
                             tiling_png: 'Export Tiling Image (PNG)',
-                            svg: 'Export Palette Image (SVG)',
                             url: 'Copy Share URL',
                             json: 'Export JSON',
                             csv: 'Export CSV'
@@ -1723,6 +1728,8 @@
                             webBtnDesc: 'Displays a live website UI preview applying the current palette.',
                             webSwitchLabel: 'Switch',
                             webSwitchDesc: 'Toggles text color and design application logic in Web Preview.',
+                            bulkLockLabel: 'Bulk Lock',
+                            bulkLockDesc: 'Toggles the lock state of all color panes at once.',
                             resetWidthsLabel: 'Reset Widths',
                             resetWidthsDesc: 'Resets changed size ratios of each color pane back to equal proportions.',
                             rulerLabel: 'Ruler Lines',
@@ -1799,7 +1806,7 @@
                             helpStockLabel: 'Stock Feature',
                             helpStockDesc: 'Save up to 20 favorite palettes. Reorder with drag-and-drop, click to load, overwrite, or delete saved items.',
                             helpExportLabel: 'Export Formats',
-                            helpExportDesc: 'Supports Share URL, CSS Variables, Tailwind, SCSS, iOS Swift, Android XML, Flutter, HLSL/GLSL, Unity C#, Godot, Three.js, PNG/SVG Images, JSON, and CSV.',
+                            helpExportDesc: 'Supports Share URL, CSS Variables, Tailwind, SCSS, iOS Swift, Android XML, Flutter, HLSL/GLSL, Unity C#, Godot, Three.js, PNG Images, JSON, and CSV.',
                             shortcutsTitle: 'Keyboard Shortcuts',
                             spaceKey: 'Space',
                             spaceVal: 'GENERATE',
@@ -2030,6 +2037,26 @@
                         }
                         this.dom.rulerToggleBtn.style.opacity = this.isRulerVisible ? '1' : '0.4';
                         this.renderRuler();
+                        this.pushHistory();
+                    });
+                }
+
+                const bulkLockToggleBtn = document.getElementById('bulk-lock-toggle-btn');
+                const updateBulkLockBtn = () => {
+                    if (!bulkLockToggleBtn) return;
+                    const hasLocked = this.currentColors.some(c => c.locked);
+                    bulkLockToggleBtn.textContent = hasLocked ? '🔒' : '🔓';
+                    const t = this.translations[this.currentLang];
+                    bulkLockToggleBtn.title = hasLocked ? t.tooltips.bulkUnlock : t.tooltips.bulkLock;
+                };
+
+                if (bulkLockToggleBtn) {
+                    bulkLockToggleBtn.addEventListener('click', () => {
+                        const hasLocked = this.currentColors.some(c => c.locked);
+                        const newState = !hasLocked;
+                        this.currentColors.forEach(c => c.locked = newState);
+                        updateBulkLockBtn();
+                        this.renderPanes();
                         this.pushHistory();
                     });
                 }
@@ -2302,7 +2329,6 @@
                         else if (val === 'png') this.exportImage('png');
                         else if (val === 'square_png') this.exportImage('square_png');
                         else if (val === 'tiling_png') this.exportImage('tiling_png');
-                        else if (val === 'svg') this.exportImage('svg');
                         else if (val === 'url') this.copyShareUrl();
                         else if (val === 'json') this.exportJson();
                         else if (val === 'csv') this.exportCsv();
@@ -3296,6 +3322,12 @@
                                 target.widthRatio = 1;
                             }
                         }
+                        const bulkLockToggleBtn = document.getElementById('bulk-lock-toggle-btn');
+                        if (bulkLockToggleBtn) {
+                            const hasLocked = this.currentColors.some(c => c.locked);
+                            bulkLockToggleBtn.textContent = hasLocked ? '🔒' : '🔓';
+                            bulkLockToggleBtn.title = hasLocked ? '一括ロック解除' : '一括ロック';
+                        }
                         this.renderPanes();
                     });
                     pane.appendChild(lockBtn);
@@ -3894,6 +3926,12 @@
                     if (state.currentColors && state.currentColors.length > 0) {
                         this.currentColors = state.currentColors;
                         this.renderPanes();
+                        const bulkLockToggleBtn = document.getElementById('bulk-lock-toggle-btn');
+                        if (bulkLockToggleBtn) {
+                            const hasLocked = this.currentColors.some(c => c.locked);
+                            bulkLockToggleBtn.textContent = hasLocked ? '🔒' : '🔓';
+                            bulkLockToggleBtn.title = hasLocked ? '一括ロック解除' : '一括ロック';
+                        }
                         this.pushHistory(this.currentColors);
                         this.updateTexts();
                         return true;
@@ -4047,6 +4085,12 @@
                     }
                 }
                 this.renderPanes();
+                const bulkLockToggleBtn = document.getElementById('bulk-lock-toggle-btn');
+                if (bulkLockToggleBtn) {
+                    const hasLocked = this.currentColors.some(c => c.locked);
+                    bulkLockToggleBtn.textContent = hasLocked ? '🔒' : '🔓';
+                    bulkLockToggleBtn.title = hasLocked ? '一括ロック解除' : '一括ロック';
+                }
             }
 
             undo() {
@@ -4114,6 +4158,11 @@
                 if (this.dom.resetWidthsBtn) this.dom.resetWidthsBtn.title = t.tooltips.resetWidths;
                 const toggleSplitViewBtn = document.getElementById('toggle-split-view-btn');
                 if (toggleSplitViewBtn) toggleSplitViewBtn.title = t.tooltips.toggleSplitView;
+                const bulkLockToggleBtn = document.getElementById('bulk-lock-toggle-btn');
+                if (bulkLockToggleBtn) {
+                    const hasLocked = this.currentColors.some(c => c.locked);
+                    bulkLockToggleBtn.title = hasLocked ? t.tooltips.bulkUnlock : t.tooltips.bulkLock;
+                }
 
                 if (this.dom.closeDrawerBtn) this.dom.closeDrawerBtn.title = t.tooltips.closeDrawer;
                 if (this.dom.openDrawerBtn) this.dom.openDrawerBtn.title = t.tooltips.openDrawer;
@@ -4170,7 +4219,6 @@
                     document.getElementById('opt-png').textContent = eo.png;
                     document.getElementById('opt-square-png').textContent = eo.square_png;
                     document.getElementById('opt-tiling-png').textContent = eo.tiling_png;
-                    document.getElementById('opt-svg').textContent = eo.svg;
                     document.getElementById('opt-url').textContent = eo.url;
                     document.getElementById('opt-json').textContent = eo.json;
                     document.getElementById('opt-csv').textContent = eo.csv;
@@ -4226,6 +4274,8 @@
                 const txtWebBtnDesc = document.getElementById('txt-web-btn-desc');
                 const txtWebSwitchLabel = document.getElementById('txt-web-switch-label');
                 const txtWebSwitchDesc = document.getElementById('txt-web-switch-desc');
+                const txtBulkLockLabel = document.getElementById('txt-bulk-lock-label');
+                const txtBulkLockDesc = document.getElementById('txt-bulk-lock-desc');
                 const txtResetWidthsLabel = document.getElementById('txt-reset-widths-label');
                 const txtResetWidthsDesc = document.getElementById('txt-reset-widths-desc');
                 const txtRulerLabel = document.getElementById('txt-ruler-label');
@@ -4243,6 +4293,8 @@
                 if (txtWebBtnDesc) txtWebBtnDesc.textContent = t.help.webBtnDesc;
                 if (txtWebSwitchLabel) txtWebSwitchLabel.textContent = t.help.webSwitchLabel;
                 if (txtWebSwitchDesc) txtWebSwitchDesc.textContent = t.help.webSwitchDesc;
+                if (txtBulkLockLabel) txtBulkLockLabel.textContent = t.help.bulkLockLabel;
+                if (txtBulkLockDesc) txtBulkLockDesc.textContent = t.help.bulkLockDesc;
                 if (txtResetWidthsLabel) txtResetWidthsLabel.textContent = t.help.resetWidthsLabel;
                 if (txtResetWidthsDesc) txtResetWidthsDesc.textContent = t.help.resetWidthsDesc;
                 if (txtRulerLabel) txtRulerLabel.textContent = t.help.rulerLabel;
@@ -4849,34 +4901,6 @@
                         const prefix = type === 'square_png' ? 'square_' : (type === 'tiling_png' ? 'tiling_' : '');
                         this.downloadBlob(blob, `palette_${prefix}${Date.now()}.png`);
                     }, 'image/png');
-                } else if (type === 'svg') {
-                    // SVG文字列の生成
-                    let svgRects = '';
-                    let curX = 0;
-                    this.currentColors.forEach((c, i) => {
-                        const simRgb = this.getSimulatedRgb(c.rgb);
-                        const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
-                        const wPct = (ratios[i] / totalRatio) * 100;
-                        const textColor = ColorMath.getAccessibleTextColor(simRgb[0], simRgb[1], simRgb[2]);
-
-                        svgRects += `<rect x="${curX}%" y="0" width="${wPct}%" height="100%" fill="${hex}" />\n`;
-                        svgRects += `<text x="${curX + wPct/2}%" y="85%" fill="${textColor}" font-family="monospace" font-size="20" font-weight="bold" text-anchor="middle">${hex}</text>\n`;
-                        curX += wPct;
-                    });
-
-                    const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
-  <rect width="100%" height="100%" fill="#111827"/>
-  <text x="60" y="70" fill="#FFFFFF" font-family="sans-serif" font-size="28" font-weight="bold">Color Palette</text>
-  <g transform="translate(60, 110)">
-    <svg width="${barWidth}" height="${barHeight}" rx="12" overflow="hidden">
-      ${svgRects}
-    </svg>
-  </g>
-  <text x="60" y="540" fill="rgba(255,255,255,0.6)" font-family="sans-serif" font-size="16">Generated by Color Scheme Generator</text>
-</svg>`;
-
-                    const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8;' });
-                    this.downloadBlob(blob, `palette_${Date.now()}.svg`);
                 }
             }
 
