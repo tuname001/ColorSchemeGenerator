@@ -3636,14 +3636,12 @@
                             }
                         } else {
                             if (i === 0) {
-                                sbStops.push(`${displayHex} ${startPct}%`);
+                                sbStops.push(`${displayHex} 0%`);
                                 sbStops.push(`${displayHex} ${midPct}%`);
                             } else if (i === count - 1) {
-                                sbStops.push(`${displayHex} ${startPct}%`);
                                 sbStops.push(`${displayHex} ${midPct}%`);
                                 sbStops.push(`${displayHex} 100%`);
                             } else {
-                                sbStops.push(`${displayHex} ${startPct}%`);
                                 sbStops.push(`${displayHex} ${midPct}%`);
                             }
                         }
