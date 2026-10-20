@@ -1045,7 +1045,8 @@
                         // 彩度(c)の上限制限を 0.32 から 1.0 に拡大してスライダーの強さを反映させる
                         let c = Math.max(0.0, Math.min(1.0, baseC + settings.satStep * i));
                         // 白（1.0）や黒（0.0）に到達できるように制限を緩める
-                        let l = Math.max(0.0, Math.min(1.0, baseL + settings.litStep * i));
+                        let l = baseL + settings.litStep * i;
+                        l = Math.max(0.0, Math.min(1.0, l));
                         okList.push({ l, c, h });
                     }
                 }
@@ -2665,13 +2666,13 @@
                     let h = (orig.h + globalHue) % 360;
                     if (h < 0) h += 360;
                     let c_val = Math.max(0.0, Math.min(1.0, orig.c * (1.0 + globalSat)));
-                    let l = Math.max(0.0, Math.min(1.0, orig.l + globalLit));
+                    let l = globalLit >= 0 ? orig.l + (1.0 - orig.l) * globalLit : orig.l * (1.0 + globalLit);
 
                     if (index === this.selectedColorIndex) {
                         h = (h + singleHue) % 360;
                         if (h < 0) h += 360;
                         c_val = Math.max(0.0, Math.min(1.0, c_val * (1.0 + singleSat)));
-                        l = Math.max(0.0, Math.min(1.0, l + singleLit));
+                        l = singleLit >= 0 ? l + (1.0 - l) * singleLit : l * (1.0 + singleLit);
                     }
 
                     const oklch = { l, c: c_val, h };
@@ -3621,32 +3622,57 @@
                 let currentPercent = 0;
                 const stops = [];
 
-                ratios.forEach((ratio, i) => {
-                    const percent = (ratio / totalRatio) * 100;
-                    const startPct = currentPercent;
-                    let endPct = currentPercent + percent;
-                    if (i === ratios.length - 1) endPct = 100; // 最後の要素の終端を厳密に100%に固定
-                    const midPct = startPct + ((endPct - startPct) / 2);
+                if (this.isSplitMode) {
+                    ratios.forEach((ratio, i) => {
+                        const percent = (ratio / totalRatio) * 100;
+                        const startPct = currentPercent;
+                        let endPct = currentPercent + percent;
+                        if (i === ratios.length - 1) endPct = 100;
 
-                    if (this.isSplitMode) {
                         if (i === ratios.length - 1) {
                             stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} 100%`);
                         } else {
                             stops.push(`${hexes[i]} ${startPct}%, ${hexes[i]} ${endPct}%`);
                         }
-                    } else {
-                        if (i === 0) {
-                            stops.push(`${hexes[i]} 0%`);
-                            stops.push(`${hexes[i]} ${midPct}%`);
-                        } else if (i === ratios.length - 1) {
-                            stops.push(`${hexes[i]} ${midPct}%`);
-                            stops.push(`${hexes[i]} 100%`);
-                        } else {
-                            stops.push(`${hexes[i]} ${midPct}%`);
+                        currentPercent = endPct;
+                    });
+                } else {
+                    // グラデーションモード時は、正方形画像と同様にOKLCHで滑らかな中間ステップを生成
+                    const interpolateOklch = (colorA, colorB, t) => {
+                        return {
+                            l: colorA.l + (colorB.l - colorA.l) * t,
+                            c: colorA.c + (colorB.c - colorA.c) * t,
+                            h: colorA.h + ((colorB.h - colorA.h + 540) % 360 - 180) * t
+                        };
+                    };
+
+                    let canvasStops = [];
+                    ratios.forEach((ratio, i) => {
+                        const percent = (ratio / totalRatio) * 100;
+                        const startPct = currentPercent;
+                        let endPct = currentPercent + percent;
+                        if (i === ratios.length - 1) endPct = 100;
+                        const pct = (i === 0) ? 0 : (i === ratios.length - 1 ? 100 : startPct + (percent / 2));
+                        canvasStops.push({ pct: pct / 100, oklch: orderedColors[i].oklch });
+                        currentPercent = endPct;
+                    });
+
+                    for (let i = 0; i < canvasStops.length - 1; i++) {
+                        const stopA = canvasStops[i];
+                        const stopB = canvasStops[i + 1];
+                        const steps = 10; // メイン画面のパフォーマンスを考慮して10分割程度に設定
+                        for (let s = 0; s <= steps; s++) {
+                            const t = s / steps;
+                            const p = (stopA.pct + (stopB.pct - stopA.pct) * t) * 100;
+                            const interpolated = interpolateOklch(stopA.oklch, stopB.oklch, t);
+                            // 白（明度1.0など）が混ざってもピンク色に変な変化をしないよう、安全に変換されたHEXを使用
+                            const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
+                            const simRgb = this.getSimulatedRgb(rgb);
+                            const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                            stops.push(`${hex} ${p}%`);
                         }
                     }
-                    currentPercent = endPct;
-                });
+                }
 
                 this.dom.mainContainer.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
                 this.updateWebPreviewColors();
@@ -3659,29 +3685,46 @@
                     const count = hexes.length;
                     const sbStops = [];
 
-                    for (let i = 0; i < count; i++) {
-                        const startPct = (i / count) * 100;
-                        const endPct = ((i + 1) / count) * 100;
-                        const midPct = startPct + ((endPct - startPct) / 2);
+                    if (this.isSplitMode) {
+                        for (let i = 0; i < count; i++) {
+                            const startPct = (i / count) * 100;
+                            const endPct = ((i + 1) / count) * 100;
+                            const displayHex = (this.draggingPaneIndex !== undefined && i === this.draggingPaneIndex) ? '#000000' : hexes[i];
 
-                        // ドラッグ中は、掴んでいるインデックスの部分を黒く表示する
-                        const displayHex = (this.draggingPaneIndex !== undefined && i === this.draggingPaneIndex) ? '#000000' : hexes[i];
-
-                        if (this.isSplitMode) {
                             if (i === count - 1) {
                                 sbStops.push(`${displayHex} ${startPct}%, ${displayHex} 100%`);
                             } else {
                                 sbStops.push(`${displayHex} ${startPct}%, ${displayHex} ${endPct}%`);
                             }
-                        } else {
-                            if (i === 0) {
-                                sbStops.push(`${displayHex} 0%`);
-                                sbStops.push(`${displayHex} ${midPct}%`);
-                            } else if (i === count - 1) {
-                                sbStops.push(`${displayHex} ${midPct}%`);
-                                sbStops.push(`${displayHex} 100%`);
-                            } else {
-                                sbStops.push(`${displayHex} ${midPct}%`);
+                        }
+                    } else {
+                        // メイン画面と同様に、OKLCH補間による滑らかな中間ステップを生成
+                        const interpolateOklch = (colorA, colorB, t) => {
+                            return {
+                                l: colorA.l + (colorB.l - colorA.l) * t,
+                                c: colorA.c + (colorB.c - colorA.c) * t,
+                                h: colorA.h + ((colorB.h - colorA.h + 540) % 360 - 180) * t
+                            };
+                        };
+
+                        let canvasStops = [];
+                        for (let i = 0; i < count; i++) {
+                            const pct = (i / (count - 1 || 1)) * 100;
+                            canvasStops.push({ pct: pct / 100, oklch: orderedColors[i].oklch });
+                        }
+
+                        for (let i = 0; i < canvasStops.length - 1; i++) {
+                            const stopA = canvasStops[i];
+                            const stopB = canvasStops[i + 1];
+                            const steps = 10;
+                            for (let s = 0; s <= steps; s++) {
+                                const t = s / steps;
+                                const p = (stopA.pct + (stopB.pct - stopA.pct) * t) * 100;
+                                const interpolated = interpolateOklch(stopA.oklch, stopB.oklch, t);
+                                const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
+                                const simRgb = this.getSimulatedRgb(rgb);
+                                const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                sbStops.push(`${hex} ${p}%`);
                             }
                         }
                     }
@@ -4797,17 +4840,55 @@
 
                 if (isTiling) {
                     // タイリング出力（シームレスグラデーション）：
-                    // 画像の左右を並べた際に継ぎ目がないよう、一番右の色の右側（奥）に左側の色がつながるグラデーションを構築
+                    // 正方形出力と同じOKLCHグラデーション補間をベースに、
+                    // 両端のウェイトを半分（0.5）にして先頭と最後を完全にループ（a-b-c-a構造）させる
                     const grad = ctx.createLinearGradient(0, 0, width, 0);
+                    const interpolateOklch = (colorA, colorB, t) => {
+                        return {
+                            l: colorA.l + (colorB.l - colorA.l) * t,
+                            c: colorA.c + (colorB.c - colorA.c) * t,
+                            h: colorA.h + ((colorB.h - colorA.h + 540) % 360 - 180) * t
+                        };
+                    };
+
+                    // 配列の最初と最後を繋いだループ配列を作成（a, b, c, ..., a）
                     const extendedColors = [...this.currentColors, this.currentColors[0]];
-                    const extCount = extendedColors.length;
+                    const baseExtRatios = [...ratios, ratios[0]];
                     
-                    extendedColors.forEach((c, i) => {
-                        const simRgb = this.getSimulatedRgb(c.rgb);
-                        const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
-                        const stopPct = (i / (extCount - 1));
-                        grad.addColorStop(stopPct, hex);
+                    // 両端（最初と最後）の比率ウェイトをそれぞれ 0.5 (半分) にして、合計で1ペイン分にする
+                    const extRatios = baseExtRatios.map((r, i) => (i === 0 || i === baseExtRatios.length - 1) ? r * 0.5 : r);
+                    const extTotalRatio = extRatios.reduce((sum, r) => sum + r, 0) || 1;
+
+                    let currentPercent = 0;
+                    const canvasStops = [];
+                    extRatios.forEach((ratio, i) => {
+                        const percent = (ratio / extTotalRatio) * 100;
+                        const startPct = currentPercent;
+                        let endPct = currentPercent + percent;
+                        if (i === extRatios.length - 1) endPct = 100;
+                        const midPct = startPct + ((endPct - startPct) / 2);
+
+                        const c = extendedColors[i];
+                        canvasStops.push({ pct: midPct / 100, oklch: c.oklch });
+                        currentPercent = endPct;
                     });
+
+                    // 正方形出力と同じOKLCH補間ロジックを用いて各ストップ間を滑らかに描画
+                    for (let i = 0; i < canvasStops.length - 1; i++) {
+                        const stopA = canvasStops[i];
+                        const stopB = canvasStops[i + 1];
+                        const steps = 30;
+
+                        for (let s = 0; s <= steps; s++) {
+                            const t = s / steps;
+                            const p = stopA.pct + (stopB.pct - stopA.pct) * t;
+                            const interpolated = interpolateOklch(stopA.oklch, stopB.oklch, t);
+                            const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
+                            const simRgb = this.getSimulatedRgb(rgb);
+                            const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                            grad.addColorStop(Math.min(1, Math.max(0, p)), hex);
+                        }
+                    }
 
                     ctx.fillStyle = grad;
                     ctx.fillRect(0, 0, width, height);
@@ -4825,34 +4906,48 @@
                             currentX += w;
                         });
                     } else {
-                        // 正方形PNG（グラデーションモード）：枠なし・文字なしで完全に滑らかなグラデーションを描画
+                        // 正方形PNG（グラデーションモード）：OKLCH空間で細かく分割補間して描画
                         const grad = ctx.createLinearGradient(0, 0, width, 0);
+                        const interpolateOklch = (colorA, colorB, t) => {
+                            return {
+                                l: colorA.l + (colorB.l - colorA.l) * t,
+                                c: colorA.c + (colorB.c - colorA.c) * t,
+                                h: colorA.h + ((colorB.h - colorA.h + 540) % 360 - 180) * t
+                            };
+                        };
+                        const len = this.currentColors.length;
                         let currentPercent = 0;
+                        const canvasStops = [];
+
                         ratios.forEach((ratio, i) => {
                             const percent = (ratio / totalRatio) * 100;
                             const startPct = currentPercent;
                             let endPct = currentPercent + percent;
                             if (i === ratios.length - 1) endPct = 100;
-                            const midPct = startPct + ((endPct - startPct) / 2);
 
-                            const simRgb = this.getSimulatedRgb(this.currentColors[i].rgb);
-                            const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                            const pct = (i === 0) ? 0 : (i === ratios.length - 1 ? 100 : startPct + (percent / 2));
 
-                            const startStop = startPct / 100;
-                            const midStop = midPct / 100;
-                            const endStop = endPct / 100;
-
-                            if (i === 0) {
-                                grad.addColorStop(startStop, hex);
-                                grad.addColorStop(midStop, hex);
-                            } else if (i === ratios.length - 1) {
-                                grad.addColorStop(midStop, hex);
-                                grad.addColorStop(1.0, hex);
-                            } else {
-                                grad.addColorStop(midStop, hex);
-                            }
+                            const c = this.currentColors[i];
+                            canvasStops.push({ pct: pct / 100, oklch: c.oklch });
                             currentPercent = endPct;
                         });
+
+                        // 最初の要素から最後の要素にかけてOKLCHでスムーズに補間ストップを追加
+                        for (let i = 0; i < canvasStops.length - 1; i++) {
+                            const stopA = canvasStops[i];
+                            const stopB = canvasStops[i + 1];
+                            const steps = 20;
+
+                            for (let s = 0; s <= steps; s++) {
+                                const t = s / steps;
+                                const p = stopA.pct + (stopB.pct - stopA.pct) * t;
+                                const interpolated = interpolateOklch(stopA.oklch, stopB.oklch, t);
+                                const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
+                                const simRgb = this.getSimulatedRgb(rgb);
+                                const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                grad.addColorStop(Math.min(1, Math.max(0, p)), hex);
+                            }
+                        }
 
                         ctx.fillStyle = grad;
                         ctx.fillRect(0, 0, width, height);
