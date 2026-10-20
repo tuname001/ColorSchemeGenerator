@@ -4839,9 +4839,14 @@
                 const totalRatio = ratios.reduce((sum, r) => sum + r, 0) || 1;
 
                 if (isTiling) {
-                    // タイリング出力（シームレスグラデーション）：
-                    // 正方形出力と同じOKLCHグラデーション補間をベースに、
-                    // 両端のウェイトを半分（0.5）にして先頭と最後を完全にループ（a-b-c-a構造）させる
+                    // タイリング出力（表示モードに関わらず常にシームレスグラデーションで出力）：
+                    // ループ配列（colors + [colors[0]]）およびループ比率（ratios + [ratios[0]/2]、先頭比率も/2）を作成
+                    const loopColors = [...this.currentColors, this.currentColors[0]];
+                    const loopRatios = [...ratios];
+                    loopRatios[0] = loopRatios[0] / 2;
+                    loopRatios.push(ratios[0] / 2);
+                    const loopTotalRatio = loopRatios.reduce((sum, r) => sum + r, 0);
+
                     const grad = ctx.createLinearGradient(0, 0, width, 0);
                     const interpolateOklch = (colorA, colorB, t) => {
                         return {
@@ -4851,33 +4856,24 @@
                         };
                     };
 
-                    // 配列の最初と最後を繋いだループ配列を作成（a, b, c, ..., a）
-                    const extendedColors = [...this.currentColors, this.currentColors[0]];
-                    const baseExtRatios = [...ratios, ratios[0]];
-                    
-                    // 両端（最初と最後）の比率ウェイトをそれぞれ 0.5 (半分) にして、合計で1ペイン分にする
-                    const extRatios = baseExtRatios.map((r, i) => (i === 0 || i === baseExtRatios.length - 1) ? r * 0.5 : r);
-                    const extTotalRatio = extRatios.reduce((sum, r) => sum + r, 0) || 1;
-
                     let currentPercent = 0;
                     const canvasStops = [];
-                    extRatios.forEach((ratio, i) => {
-                        const percent = (ratio / extTotalRatio) * 100;
+
+                    loopRatios.forEach((ratio, i) => {
+                        const percent = (ratio / loopTotalRatio) * 100;
                         const startPct = currentPercent;
                         let endPct = currentPercent + percent;
-                        if (i === extRatios.length - 1) endPct = 100;
-                        const midPct = startPct + ((endPct - startPct) / 2);
+                        if (i === loopRatios.length - 1) endPct = 100;
 
-                        const c = extendedColors[i];
-                        canvasStops.push({ pct: midPct / 100, oklch: c.oklch });
+                        const pct = (i === 0) ? 0 : (i === loopRatios.length - 1 ? 100 : startPct + (percent / 2));
+                        canvasStops.push({ pct: pct / 100, oklch: loopColors[i].oklch });
                         currentPercent = endPct;
                     });
 
-                    // 正方形出力と同じOKLCH補間ロジックを用いて各ストップ間を滑らかに描画
                     for (let i = 0; i < canvasStops.length - 1; i++) {
                         const stopA = canvasStops[i];
                         const stopB = canvasStops[i + 1];
-                        const steps = 30;
+                        const steps = 20;
 
                         for (let s = 0; s <= steps; s++) {
                             const t = s / steps;
@@ -4894,16 +4890,17 @@
                     ctx.fillRect(0, 0, width, height);
                 } else if (isSquare) {
                     if (this.isSplitMode) {
-                        // 正方形PNG（分割モード）：境界線なしでそれぞれの色のブロックをべた塗り描画
+                        // 正方形PNG（分割モード）：浮動小数点誤差による黒い隙間を防ぐため、次ブロックの開始位置を正確に計算して描画
                         let currentX = 0;
                         ratios.forEach((ratio, i) => {
-                            const w = (ratio / totalRatio) * width;
+                            const nextX = (i === ratios.length - 1) ? width : Math.round(((currentX + ((ratio / totalRatio) * width))));
+                            const w = nextX - currentX;
                             const simRgb = this.getSimulatedRgb(this.currentColors[i].rgb);
                             const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
 
                             ctx.fillStyle = hex;
                             ctx.fillRect(currentX, 0, w, height);
-                            currentX += w;
+                            currentX = nextX;
                         });
                     } else {
                         // 正方形PNG（グラデーションモード）：OKLCH空間で細かく分割補間して描画
