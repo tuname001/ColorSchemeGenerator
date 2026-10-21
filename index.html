@@ -3015,6 +3015,13 @@
                         widthRatio: newColors[0].widthRatio !== undefined ? newColors[0].widthRatio : 1,
                         locked: prevFirst.locked !== undefined ? prevFirst.locked : false
                     };
+                    const prevLast = this.currentColors[this.currentColors.length - 1];
+                    const lastIdx = newColors.length - 1;
+                    newColors[lastIdx] = {
+                        ...prevLast,
+                        widthRatio: newColors[lastIdx].widthRatio !== undefined ? newColors[lastIdx].widthRatio : 1,
+                        locked: prevLast.locked !== undefined ? prevLast.locked : false
+                    };
                 }
 
                 // 修正: 既存の色配列（this.currentColors）の中でロックされている位置の色は、色数や生成処理に関わらず絶対に上書きされず保持されるようにする
