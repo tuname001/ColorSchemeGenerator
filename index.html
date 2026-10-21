@@ -250,6 +250,20 @@
             </div>
 
             <div id="settings-scroll-container" class="flex-1 space-y-6 overflow-y-auto px-6 pr-10" style="touch-action: pan-y; -webkit-overflow-scrolling: touch;">
+            <!-- 表示モード -->
+            <div>
+                <label id="txt-display-mode" class="block text-xs font-semibold uppercase tracking-wider opacity-70 mb-2">表示モード</label>
+                <div class="flex bg-black/30 p-1 rounded-xl border border-white/10 mb-2">
+                    <button id="mode-gradient" class="flex-1 py-2 text-xs font-semibold rounded-lg text-white shadow transition-all cursor-pointer" style="background-color: #3B82F6;">グラデーション</button>
+                    <button id="mode-split" class="flex-1 py-2 text-xs font-semibold rounded-lg text-white/70 hover:text-white transition-all cursor-pointer">分割</button>
+                </div>
+                <div class="flex bg-black/30 p-1 rounded-xl border border-white/10">
+                    <button id="mode-rgb" class="flex-1 py-2 text-xs font-semibold rounded-lg text-white shadow transition-all cursor-pointer" style="background-color: #3B82F6;">RGB</button>
+                    <button id="mode-hsv" class="flex-1 py-2 text-xs font-semibold rounded-lg text-white/70 hover:text-white transition-all cursor-pointer">HSV</button>
+                    <button id="mode-oklch" class="flex-1 py-2 text-xs font-semibold rounded-lg text-white/70 hover:text-white transition-all cursor-pointer">OKLCH</button>
+                </div>
+            </div>
+
             <!-- 色数設定 -->
             <div>
                 <div class="flex justify-between items-center mb-2">
@@ -403,15 +417,6 @@
                         </div>
                         <input type="range" id="single-lit-slider" min="-100" max="100" value="0" step="1" class="w-full cursor-pointer">
                     </div>
-                </div>
-            </div>
-
-            <!-- 表示モード -->
-            <div>
-                <label id="txt-display-mode" class="block text-xs font-semibold uppercase tracking-wider opacity-70 mb-2">表示モード</label>
-                <div class="flex bg-black/30 p-1 rounded-xl border border-white/10">
-                    <button id="mode-gradient" class="flex-1 py-2 text-xs font-semibold rounded-lg text-white shadow transition-all cursor-pointer" style="background-color: #3B82F6;">グラデーション</button>
-                    <button id="mode-split" class="flex-1 py-2 text-xs font-semibold rounded-lg text-white/70 hover:text-white transition-all cursor-pointer">分割</button>
                 </div>
             </div>
 
@@ -1004,6 +1009,47 @@
                 return contrastWithWhite >= contrastWithBlack ? '#F9FAFB' : '#111827';
             }
             
+            static rgbToHsv(r, g, b) {
+                r /= 255; g /= 255; b /= 255;
+                const max = Math.max(r, g, b), min = Math.min(r, g, b);
+                let h, s, v = max;
+                const d = max - min;
+                s = max === 0 ? 0 : d / max;
+                if (max === min) {
+                    h = 0;
+                } else {
+                    switch (max) {
+                        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                        case g: h = (b - r) / d + 2; break;
+                        case b: h = (r - g) / d + 4; break;
+                    }
+                    h /= 6;
+                }
+                return { h: h * 360, s, v };
+            }
+
+            static hsvToRgb(h, s, v) {
+                let r, g, b;
+                const i = Math.floor(h / 60) % 6;
+                const f = h / 60 - Math.floor(h / 60);
+                const p = v * (1 - s);
+                const q = v * (1 - f * s);
+                const t = v * (1 - (1 - f) * s);
+                switch (i) {
+                    case 0: r = v; g = t; b = p; break;
+                    case 1: r = q; g = v; b = p; break;
+                    case 2: r = p; g = v; b = t; break;
+                    case 3: r = p; g = q; b = v; break;
+                    case 4: r = t; g = p; b = v; break;
+                    case 5: r = v; g = p; b = q; break;
+                }
+                return [
+                    Math.min(255, Math.max(0, Math.round(r * 255))),
+                    Math.min(255, Math.max(0, Math.round(g * 255))),
+                    Math.min(255, Math.max(0, Math.round(b * 255)))
+                ];
+            }
+
             // RGBから正確なOKLCHを逆算 (再計算による劣化を防ぐ保護処理追加)
             static rgbToOklch(r, g, b) {
                 const linRgb = [this.srgbToLinear(r), this.srgbToLinear(g), this.srgbToLinear(b)];
@@ -1328,6 +1374,9 @@
                     toastMsg: document.getElementById('toast-msg'),
                     modeGradient: document.getElementById('mode-gradient'),
                     modeSplit: document.getElementById('mode-split'),
+                    modeRgb: document.getElementById('mode-rgb'),
+                    modeHsv: document.getElementById('mode-hsv'),
+                    modeOklch: document.getElementById('mode-oklch'),
                     keepBaseUpdateBtn: document.getElementById('keep-base-update-btn'),
                     resetWidthsBtn: document.getElementById('reset-widths-btn'),
                     rulerToggleBtn: document.getElementById('ruler-toggle-btn'),
@@ -2296,6 +2345,9 @@
 
                 this.dom.modeGradient.addEventListener('click', () => this.setDisplayMode(false, true));
                 this.dom.modeSplit.addEventListener('click', () => this.setDisplayMode(true, true));
+                this.dom.modeRgb.addEventListener('click', () => this.setSubDisplayMode('rgb'));
+                this.dom.modeHsv.addEventListener('click', () => this.setSubDisplayMode('hsv'));
+                this.dom.modeOklch.addEventListener('click', () => this.setSubDisplayMode('oklch'));
 
                 this.dom.saveStockBtn.addEventListener('click', () => this.saveStock());
                 
@@ -2565,6 +2617,23 @@
                 if (recordHistory) {
                     this.pushHistory(this.currentColors);
                 }
+                this.saveState();
+            }
+
+            setSubDisplayMode(mode) {
+                this.colorSpace = mode;
+                ['rgb', 'hsv', 'oklch'].forEach(m => {
+                    const btn = this.dom[`mode${m.charAt(0).toUpperCase() + m.slice(1)}`];
+                    if (!btn) return;
+                    if (m === mode) {
+                        btn.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-white shadow transition-all cursor-pointer';
+                        btn.style.backgroundColor = '#3B82F6';
+                    } else {
+                        btn.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-white/70 hover:text-white transition-all cursor-pointer';
+                        btn.style.backgroundColor = '';
+                    }
+                });
+                this.updateBackground();
                 this.saveState();
             }
 
@@ -3637,7 +3706,8 @@
                         currentPercent = endPct;
                     });
                 } else {
-                    // グラデーションモード時は、正方形画像と同様にOKLCHで滑らかな中間ステップを生成
+                    // グラデーションモード時は、選択されたカラーモード（OKLCH, RGB, HSV）に応じた滑らかな中間ステップを生成
+                    const colorSpace = this.colorSpace || 'oklch';
                     const interpolateOklch = (colorA, colorB, t) => {
                         return {
                             l: colorA.l + (colorB.l - colorA.l) * t,
@@ -3653,22 +3723,45 @@
                         let endPct = currentPercent + percent;
                         if (i === ratios.length - 1) endPct = 100;
                         const pct = (i === 0) ? 0 : (i === ratios.length - 1 ? 100 : startPct + (percent / 2));
-                        canvasStops.push({ pct: pct / 100, oklch: orderedColors[i].oklch });
+                        
+                        let interpData = orderedColors[i].oklch;
+                        if (colorSpace === 'rgb') {
+                            interpData = { r: orderedColors[i].rgb[0], g: orderedColors[i].rgb[1], b: orderedColors[i].rgb[2] };
+                        } else if (colorSpace === 'hsv') {
+                            interpData = ColorMath.rgbToHsv(...orderedColors[i].rgb);
+                        }
+                        canvasStops.push({ pct: pct / 100, data: interpData });
                         currentPercent = endPct;
                     });
 
                     for (let i = 0; i < canvasStops.length - 1; i++) {
                         const stopA = canvasStops[i];
                         const stopB = canvasStops[i + 1];
-                        const steps = 10; // メイン画面のパフォーマンスを考慮して10分割程度に設定
+                        const steps = 10;
                         for (let s = 0; s <= steps; s++) {
                             const t = s / steps;
                             const p = (stopA.pct + (stopB.pct - stopA.pct) * t) * 100;
-                            const interpolated = interpolateOklch(stopA.oklch, stopB.oklch, t);
-                            // 白（明度1.0など）が混ざってもピンク色に変な変化をしないよう、安全に変換されたHEXを使用
-                            const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
-                            const simRgb = this.getSimulatedRgb(rgb);
-                            const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                            let hex = '';
+                            if (colorSpace === 'oklch') {
+                                const interpolated = interpolateOklch(stopA.data, stopB.data, t);
+                                const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
+                                const simRgb = this.getSimulatedRgb(rgb);
+                                hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                            } else if (colorSpace === 'rgb') {
+                                const r = stopA.data.r + (stopB.data.r - stopA.data.r) * t;
+                                const g = stopA.data.g + (stopB.data.g - stopA.data.g) * t;
+                                const b = stopA.data.b + (stopB.data.b - stopA.data.b) * t;
+                                const simRgb = this.getSimulatedRgb([r, g, b]);
+                                hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                            } else if (colorSpace === 'hsv') {
+                                let h = stopA.data.h + ((stopB.data.h - stopA.data.h + 540) % 360 - 180) * t;
+                                h = (h % 360 + 360) % 360;
+                                const sat = stopA.data.s + (stopB.data.s - stopA.data.s) * t;
+                                const v = stopA.data.v + (stopB.data.v - stopA.data.v) * t;
+                                const rgb = ColorMath.hsvToRgb(h, sat, v);
+                                const simRgb = this.getSimulatedRgb(rgb);
+                                hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                            }
                             stops.push(`${hex} ${p}%`);
                         }
                     }
@@ -3698,7 +3791,8 @@
                             }
                         }
                     } else {
-                        // メイン画面と同様に、OKLCH補間による滑らかな中間ステップを生成
+                        // メイン画面と同様に、選択されたカラーモードに応じた滑らかな中間ステップを生成
+                        const colorSpace = this.colorSpace || 'oklch';
                         const interpolateOklch = (colorA, colorB, t) => {
                             return {
                                 l: colorA.l + (colorB.l - colorA.l) * t,
@@ -3710,7 +3804,13 @@
                         let canvasStops = [];
                         for (let i = 0; i < count; i++) {
                             const pct = (i / (count - 1 || 1)) * 100;
-                            canvasStops.push({ pct: pct / 100, oklch: orderedColors[i].oklch });
+                            let interpData = orderedColors[i].oklch;
+                            if (colorSpace === 'rgb') {
+                                interpData = { r: orderedColors[i].rgb[0], g: orderedColors[i].rgb[1], b: orderedColors[i].rgb[2] };
+                            } else if (colorSpace === 'hsv') {
+                                interpData = ColorMath.rgbToHsv(...orderedColors[i].rgb);
+                            }
+                            canvasStops.push({ pct: pct / 100, data: interpData });
                         }
 
                         for (let i = 0; i < canvasStops.length - 1; i++) {
@@ -3720,10 +3820,27 @@
                             for (let s = 0; s <= steps; s++) {
                                 const t = s / steps;
                                 const p = (stopA.pct + (stopB.pct - stopA.pct) * t) * 100;
-                                const interpolated = interpolateOklch(stopA.oklch, stopB.oklch, t);
-                                const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
-                                const simRgb = this.getSimulatedRgb(rgb);
-                                const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                let hex = '';
+                                if (colorSpace === 'oklch') {
+                                    const interpolated = interpolateOklch(stopA.data, stopB.data, t);
+                                    const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
+                                    const simRgb = this.getSimulatedRgb(rgb);
+                                    hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                } else if (colorSpace === 'rgb') {
+                                    const r = stopA.data.r + (stopB.data.r - stopA.data.r) * t;
+                                    const g = stopA.data.g + (stopB.data.g - stopA.data.g) * t;
+                                    const b = stopA.data.b + (stopB.data.b - stopA.data.b) * t;
+                                    const simRgb = this.getSimulatedRgb([r, g, b]);
+                                    hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                } else if (colorSpace === 'hsv') {
+                                    let h = stopA.data.h + ((stopB.data.h - stopA.data.h + 540) % 360 - 180) * t;
+                                    h = (h % 360 + 360) % 360;
+                                    const sat = stopA.data.s + (stopB.data.s - stopA.data.s) * t;
+                                    const v = stopA.data.v + (stopB.data.v - stopA.data.v) * t;
+                                    const rgb = ColorMath.hsvToRgb(h, sat, v);
+                                    const simRgb = this.getSimulatedRgb(rgb);
+                                    hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                }
                                 sbStops.push(`${hex} ${p}%`);
                             }
                         }
@@ -3850,7 +3967,8 @@
                     exportShareSelect: this.dom.exportShareSelect ? this.dom.exportShareSelect.value : 'url',
                     visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal',
                     webPreviewVisible: this.dom.webPreviewScreen ? !this.dom.webPreviewScreen.classList.contains('hidden') : false,
-                    isWebColorTextMode: this.isWebColorTextMode
+                    isWebColorTextMode: this.isWebColorTextMode,
+                    colorSpace: this.colorSpace || 'oklch'
                 };
                 localStorage.setItem(CONFIG.STATE_STORAGE_KEY, JSON.stringify(state));
             }
@@ -3960,6 +4078,9 @@
                             this.dom.webPreviewScreen.classList.add('hidden');
                             if (this.dom.webSwitchBtn) this.dom.webSwitchBtn.classList.add('hidden');
                         }
+                    }
+                    if (state.colorSpace !== undefined) {
+                        this.setSubDisplayMode(state.colorSpace);
                     }
                     if (state.isWebColorTextMode !== undefined) {
                         this.isWebColorTextMode = state.isWebColorTextMode;
@@ -4848,6 +4969,7 @@
                     const loopTotalRatio = loopRatios.reduce((sum, r) => sum + r, 0);
 
                     const grad = ctx.createLinearGradient(0, 0, width, 0);
+                    const colorSpace = this.colorSpace || 'oklch';
                     const interpolateOklch = (colorA, colorB, t) => {
                         return {
                             l: colorA.l + (colorB.l - colorA.l) * t,
@@ -4866,7 +4988,13 @@
                         if (i === loopRatios.length - 1) endPct = 100;
 
                         const pct = (i === 0) ? 0 : (i === loopRatios.length - 1 ? 100 : startPct + (percent / 2));
-                        canvasStops.push({ pct: pct / 100, oklch: loopColors[i].oklch });
+                        let interpData = loopColors[i].oklch;
+                        if (colorSpace === 'rgb') {
+                            interpData = { r: loopColors[i].rgb[0], g: loopColors[i].rgb[1], b: loopColors[i].rgb[2] };
+                        } else if (colorSpace === 'hsv') {
+                            interpData = ColorMath.rgbToHsv(...loopColors[i].rgb);
+                        }
+                        canvasStops.push({ pct: pct / 100, data: interpData });
                         currentPercent = endPct;
                     });
 
@@ -4878,10 +5006,27 @@
                         for (let s = 0; s <= steps; s++) {
                             const t = s / steps;
                             const p = stopA.pct + (stopB.pct - stopA.pct) * t;
-                            const interpolated = interpolateOklch(stopA.oklch, stopB.oklch, t);
-                            const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
-                            const simRgb = this.getSimulatedRgb(rgb);
-                            const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                            let hex = '';
+                            if (colorSpace === 'oklch') {
+                                const interpolated = interpolateOklch(stopA.data, stopB.data, t);
+                                const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
+                                const simRgb = this.getSimulatedRgb(rgb);
+                                hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                            } else if (colorSpace === 'rgb') {
+                                const r = stopA.data.r + (stopB.data.r - stopA.data.r) * t;
+                                const g = stopA.data.g + (stopB.data.g - stopA.data.g) * t;
+                                const b = stopA.data.b + (stopB.data.b - stopA.data.b) * t;
+                                const simRgb = this.getSimulatedRgb([r, g, b]);
+                                hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                            } else if (colorSpace === 'hsv') {
+                                let h = stopA.data.h + ((stopB.data.h - stopA.data.h + 540) % 360 - 180) * t;
+                                h = (h % 360 + 360) % 360;
+                                const sat = stopA.data.s + (stopB.data.s - stopA.data.s) * t;
+                                const v = stopA.data.v + (stopB.data.v - stopA.data.v) * t;
+                                const rgb = ColorMath.hsvToRgb(h, sat, v);
+                                const simRgb = this.getSimulatedRgb(rgb);
+                                hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                            }
                             grad.addColorStop(Math.min(1, Math.max(0, p)), hex);
                         }
                     }
@@ -4903,8 +5048,9 @@
                             currentX = nextX;
                         });
                     } else {
-                        // 正方形PNG（グラデーションモード）：OKLCH空間で細かく分割補間して描画
+                        // 正方形PNG（グラデーションモード）：選択されているカラー空間に応じて補間して描画
                         const grad = ctx.createLinearGradient(0, 0, width, 0);
+                        const colorSpace = this.colorSpace || 'oklch';
                         const interpolateOklch = (colorA, colorB, t) => {
                             return {
                                 l: colorA.l + (colorB.l - colorA.l) * t,
@@ -4912,7 +5058,6 @@
                                 h: colorA.h + ((colorB.h - colorA.h + 540) % 360 - 180) * t
                             };
                         };
-                        const len = this.currentColors.length;
                         let currentPercent = 0;
                         const canvasStops = [];
 
@@ -4924,12 +5069,16 @@
 
                             const pct = (i === 0) ? 0 : (i === ratios.length - 1 ? 100 : startPct + (percent / 2));
 
-                            const c = this.currentColors[i];
-                            canvasStops.push({ pct: pct / 100, oklch: c.oklch });
+                            let interpData = this.currentColors[i].oklch;
+                            if (colorSpace === 'rgb') {
+                                interpData = { r: this.currentColors[i].rgb[0], g: this.currentColors[i].rgb[1], b: this.currentColors[i].rgb[2] };
+                            } else if (colorSpace === 'hsv') {
+                                interpData = ColorMath.rgbToHsv(...this.currentColors[i].rgb);
+                            }
+                            canvasStops.push({ pct: pct / 100, data: interpData });
                             currentPercent = endPct;
                         });
 
-                        // 最初の要素から最後の要素にかけてOKLCHでスムーズに補間ストップを追加
                         for (let i = 0; i < canvasStops.length - 1; i++) {
                             const stopA = canvasStops[i];
                             const stopB = canvasStops[i + 1];
@@ -4938,10 +5087,27 @@
                             for (let s = 0; s <= steps; s++) {
                                 const t = s / steps;
                                 const p = stopA.pct + (stopB.pct - stopA.pct) * t;
-                                const interpolated = interpolateOklch(stopA.oklch, stopB.oklch, t);
-                                const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
-                                const simRgb = this.getSimulatedRgb(rgb);
-                                const hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                let hex = '';
+                                if (colorSpace === 'oklch') {
+                                    const interpolated = interpolateOklch(stopA.data, stopB.data, t);
+                                    const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
+                                    const simRgb = this.getSimulatedRgb(rgb);
+                                    hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                } else if (colorSpace === 'rgb') {
+                                    const r = stopA.data.r + (stopB.data.r - stopA.data.r) * t;
+                                    const g = stopA.data.g + (stopB.data.g - stopA.data.g) * t;
+                                    const b = stopA.data.b + (stopB.data.b - stopA.data.b) * t;
+                                    const simRgb = this.getSimulatedRgb([r, g, b]);
+                                    hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                } else if (colorSpace === 'hsv') {
+                                    let h = stopA.data.h + ((stopB.data.h - stopA.data.h + 540) % 360 - 180) * t;
+                                    h = (h % 360 + 360) % 360;
+                                    const sat = stopA.data.s + (stopB.data.s - stopA.data.s) * t;
+                                    const v = stopA.data.v + (stopB.data.v - stopA.data.v) * t;
+                                    const rgb = ColorMath.hsvToRgb(h, sat, v);
+                                    const simRgb = this.getSimulatedRgb(rgb);
+                                    hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                }
                                 grad.addColorStop(Math.min(1, Math.max(0, p)), hex);
                             }
                         }
