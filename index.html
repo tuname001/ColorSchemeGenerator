@@ -856,6 +856,7 @@
                     { value: 'custom', label: 'カスタムステップ調整' }
                 ],
                 theory: [
+                    { value: 'gradient_scale', label: 'グラデーション配色 (ベース・末端間補間)' },
                     { value: 'camaieu', label: 'カマイユ (微小変化)' },
                     { value: 'faux_camaieu', label: 'フォカマイユ (類似変化)' },
                     { value: 'dominant_color', label: 'ドミナントカラー (同一色相)' },
@@ -1079,7 +1080,7 @@
          * 配色生成ロジッククラス (PaletteGenerator)
          */
         class PaletteGenerator {
-            static generate(mainMode, subMode, count, settings, baseState = null) {
+            static generate(mainMode, subMode, count, settings, baseState = null, endState = null) {
                 let okList = [];
                 let baseH = baseState ? baseState.h : ColorMath.random(0, 360);
                 let baseL = baseState ? baseState.l : ColorMath.random(0.4, 0.8);
@@ -1097,7 +1098,57 @@
                     }
                 }
                 else if (mainMode === 'theory') {
-                    if (subMode === 'camaieu') {
+                    if (subMode === 'gradient_scale') {
+                        let endH = endState ? endState.h : ColorMath.random(0, 360);
+                        let endL = endState ? endState.l : ColorMath.random(0.2, 0.9);
+                        let endC = endState ? endState.c : ColorMath.random(0.05, 0.25);
+
+                        let startData, endData;
+
+                        if (settings.colorSpace === 'rgb') {
+                            const startRgb = ColorMath.oklchToRgb(baseL, baseC, baseH);
+                            const endRgb = ColorMath.oklchToRgb(endL, endC, endH);
+                            startData = { r: startRgb[0], g: startRgb[1], b: startRgb[2] };
+                            endData = { r: endRgb[0], g: endRgb[1], b: endRgb[2] };
+                        } else if (settings.colorSpace === 'hsv') {
+                            const startRgb = ColorMath.oklchToRgb(baseL, baseC, baseH);
+                            const endRgb = ColorMath.oklchToRgb(endL, endC, endH);
+                            startData = ColorMath.rgbToHsv(startRgb[0], startRgb[1], startRgb[2]);
+                            endData = ColorMath.rgbToHsv(endRgb[0], endRgb[1], endRgb[2]);
+                        } else {
+                            startData = { l: baseL, c: baseC, h: baseH };
+                            endData = { l: endL, c: endC, h: endH };
+                        }
+
+                        for (let i = 0; i < count; i++) {
+                            const t = count === 1 ? 0 : i / (count - 1);
+                            if (settings.colorSpace === 'rgb') {
+                                const r = startData.r + (endData.r - startData.r) * t;
+                                const g = startData.g + (endData.g - startData.g) * t;
+                                const b = startData.b + (endData.b - startData.b) * t;
+                                const oklch = ColorMath.rgbToOklch(
+                                    Math.min(255, Math.max(0, Math.round(r))),
+                                    Math.min(255, Math.max(0, Math.round(g))),
+                                    Math.min(255, Math.max(0, Math.round(b)))
+                                );
+                                okList.push(oklch);
+                            } else if (settings.colorSpace === 'hsv') {
+                                let h = startData.h + ((endData.h - startData.h + 540) % 360 - 180) * t;
+                                h = (h % 360 + 360) % 360;
+                                const s = startData.s + (endData.s - startData.s) * t;
+                                const v = startData.v + (endData.v - startData.v) * t;
+                                const rgb = ColorMath.hsvToRgb(h, s, v);
+                                const oklch = ColorMath.rgbToOklch(rgb[0], rgb[1], rgb[2]);
+                                okList.push(oklch);
+                            } else {
+                                const l = startData.l + (endData.l - startData.l) * t;
+                                const c = startData.c + (endData.c - startData.c) * t;
+                                let h = startData.h + ((endData.h - startData.h + 540) % 360 - 180) * t;
+                                h = (h % 360 + 360) % 360;
+                                okList.push({ l, c, h });
+                            }
+                        }
+                    } else if (subMode === 'camaieu') {
                         for (let i = 0; i < count; i++) {
                             okList.push({ l: baseL + ColorMath.random(-0.03, 0.03), c: baseC + ColorMath.random(-0.02, 0.02), h: baseH + ColorMath.random(-5, 5) });
                         }
@@ -1537,6 +1588,7 @@
                             catSubTheory: '2. 色彩理論・体系配色',
                             descSubTheory: '色彩学やデザイン理論に基づいた体系的な配色ルールを適用できます。選択項目は以下の通りです。',
                             listSubTheory: [
+                                'グラデーション配色 (ベース・末端間補間)',
                                 'カマイユ (微小変化)',
                                 'フォカマイユ (類似変化)',
                                 'ドミナントカラー (同一色相)',
@@ -1609,6 +1661,7 @@
                         mainModes: ['① OKLCH色相トーン配色', '② 色彩理論・体系配色', '③ イメージワード配色'],
                         subModes: {
                             custom: 'カスタムステップ調整',
+                            gradient_scale: 'グラデーション配色 (ベース・末端間補間)',
                             camaieu: 'カマイユ (微小変化)',
                             faux_camaieu: 'フォカマイユ (類似変化)',
                             dominant_color: 'ドミナントカラー (同一色相)',
@@ -1800,6 +1853,7 @@
                             catSubTheory: '2. Color Theory & Systems',
                             descSubTheory: 'Apply systematic color rules based on color theory. Available options:',
                             listSubTheory: [
+                                'Gradient Scale (Base-End Interpolation)',
                                 'Camaieu (Micro Variation)',
                                 'Faux Camaieu (Similar Variation)',
                                 'Dominant Color (Same Hue)',
@@ -1872,6 +1926,7 @@
                         mainModes: ['① OKLCH Hue & Tone', '② Color Theory & Systems', '③ Image Words'],
                         subModes: {
                             custom: 'Custom Step Adjustment',
+                            gradient_scale: 'Gradient Scale (Base-End Interpolation)',
                             camaieu: 'Camaieu (Micro Variation)',
                             faux_camaieu: 'Faux Camaieu (Similar Variation)',
                             dominant_color: 'Dominant Color (Same Hue)',
@@ -2633,7 +2688,11 @@
                         btn.style.backgroundColor = '';
                     }
                 });
-                this.updateBackground();
+                if (this.dom.mainMode.value === 'theory' && this.dom.subMode.value === 'gradient_scale' && this.currentColors.length > 0) {
+                    this.generateNewPalette(true, false);
+                } else {
+                    this.updateBackground();
+                }
                 this.saveState();
             }
 
@@ -2897,10 +2956,12 @@
                 const settings = {
                     hueStep: parseFloat(this.dom.hueStepInput.value) || 0,
                     satStep: parseFloat(this.dom.satStepInput.value) || 0,
-                    litStep: parseFloat(this.dom.litStepInput.value) || 0
+                    litStep: parseFloat(this.dom.litStepInput.value) || 0,
+                    colorSpace: this.colorSpace || 'oklch'
                 };
 
                 let baseState = null;
+                let endState = null;
                 if (keepBase && this.currentColors.length > 0) {
                     const firstColor = this.currentColors[0];
                     const oklch = firstColor.oklch || ColorMath.rgbToOklch(...firstColor.rgb);
@@ -2915,10 +2976,18 @@
                     let l = Math.max(0.0, Math.min(1.0, oklch.l - globalLit));
 
                     baseState = { l, c: c_val, h };
+
+                    const lastColor = this.currentColors[this.currentColors.length - 1];
+                    const lastOklch = lastColor.oklch || ColorMath.rgbToOklch(...lastColor.rgb);
+                    let lastH = (lastOklch.h - globalHue) % 360;
+                    if (lastH < 0) lastH += 360;
+                    let lastC = Math.max(0.0, Math.min(1.0, lastOklch.c / (1.0 + globalSat)));
+                    let lastL = Math.max(0.0, Math.min(1.0, lastOklch.l - globalLit));
+                    endState = { l: lastL, c: lastC, h: lastH };
                 }
 
                 // 新しく生成
-                let newColors = PaletteGenerator.generate(mainVal, subVal, count, settings, baseState);
+                let newColors = PaletteGenerator.generate(mainVal, subVal, count, settings, baseState, endState);
 
                 const globalHue = parseFloat(this.dom.globalHueInput.value) || 0;
                 const globalSat = (parseFloat(this.dom.globalSatInput.value) || 0) / 100;
@@ -4949,8 +5018,8 @@
             exportImage(type) {
                 const isSquare = (type === 'square_png');
                 const isTiling = (type === 'tiling_png');
-                const width = (isSquare || isTiling) ? 1000 : 1200;
-                const height = (isSquare || isTiling) ? 1000 : 630;
+                const width = (isSquare || isTiling) ? 1024 : 1200;
+                const height = (isSquare || isTiling) ? 1024 : 630;
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
                 canvas.height = height;
