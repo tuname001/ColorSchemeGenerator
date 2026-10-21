@@ -2676,6 +2676,7 @@
             }
 
             setSubDisplayMode(mode, recordHistory = true) {
+                this.commitSingleAdjustment(false);
                 this.colorSpace = mode;
                 ['rgb', 'hsv', 'oklch'].forEach(m => {
                     const btn = this.dom[`mode${m.charAt(0).toUpperCase() + m.slice(1)}`];
@@ -2822,6 +2823,24 @@
 
             selectColor(index) {
                 if (this.selectedColorIndex !== index) {
+                    const singleHue = parseFloat(this.dom.singleHueInput ? this.dom.singleHueInput.value : 0) || 0;
+                    const singleSat = parseFloat(this.dom.singleSatInput ? this.dom.singleSatInput.value : 0) || 0;
+                    const singleLit = parseFloat(this.dom.singleLitInput ? this.dom.singleLitInput.value : 0) || 0;
+
+                    if (singleHue !== 0 || singleSat !== 0 || singleLit !== 0) {
+                        const prevColor = this.currentColors[this.selectedColorIndex];
+                        if (prevColor) {
+                            prevColor.originalOklch = { ...prevColor.oklch };
+                        }
+                    }
+
+                    if (this.dom.singleHueSlider) this.dom.singleHueSlider.value = 0;
+                    if (this.dom.singleHueInput) this.dom.singleHueInput.value = 0;
+                    if (this.dom.singleSatSlider) this.dom.singleSatSlider.value = 0;
+                    if (this.dom.singleSatInput) this.dom.singleSatInput.value = 0;
+                    if (this.dom.singleLitSlider) this.dom.singleLitSlider.value = 0;
+                    if (this.dom.singleLitInput) this.dom.singleLitInput.value = 0;
+
                     this.selectedColorIndex = index;
                     this.updateSingleColorIndexLabel();
                 }
@@ -2962,21 +2981,10 @@
             }
 
             generateNewPalette(keepBase = false, recordHistory = true) {
+                this.commitSingleAdjustment(false);
                 const mainVal = this.dom.mainMode.value;
                 const subVal = this.dom.subMode.value;
                 const count = parseInt(this.dom.colorCountSlider.value);
-
-                const selectedColor = this.currentColors[this.selectedColorIndex];
-                const isSelectedLocked = selectedColor && selectedColor.locked;
-
-                if (!isSelectedLocked) {
-                    if (this.dom.singleHueSlider) this.dom.singleHueSlider.value = 0;
-                    if (this.dom.singleHueInput) this.dom.singleHueInput.value = 0;
-                    if (this.dom.singleSatSlider) this.dom.singleSatSlider.value = 0;
-                    if (this.dom.singleSatInput) this.dom.singleSatInput.value = 0;
-                    if (this.dom.singleLitSlider) this.dom.singleLitSlider.value = 0;
-                    if (this.dom.singleLitInput) this.dom.singleLitInput.value = 0;
-                }
 
                 const settings = {
                     hueStep: parseFloat(this.dom.hueStepInput.value) || 0,
@@ -2989,16 +2997,25 @@
                 let endState = null;
                 if (keepBase && this.currentColors.length > 0) {
                     const firstColor = this.currentColors[0];
-                    const oklch = firstColor.originalOklch || firstColor.oklch || ColorMath.rgbToOklch(...firstColor.rgb);
+                    const oklch = firstColor.oklch || firstColor.originalOklch || ColorMath.rgbToOklch(...firstColor.rgb);
                     baseState = { l: oklch.l, c: oklch.c, h: oklch.h };
 
                     const lastColor = this.currentColors[this.currentColors.length - 1];
-                    const lastOklch = lastColor.originalOklch || lastColor.oklch || ColorMath.rgbToOklch(...lastColor.rgb);
+                    const lastOklch = lastColor.oklch || lastColor.originalOklch || ColorMath.rgbToOklch(...lastColor.rgb);
                     endState = { l: lastOklch.l, c: lastOklch.c, h: lastOklch.h };
                 }
 
                 // 新しく生成
                 let newColors = PaletteGenerator.generate(mainVal, subVal, count, settings, baseState, endState);
+
+                if (keepBase && this.currentColors.length > 0 && subVal === 'gradient_scale') {
+                    const prevFirst = this.currentColors[0];
+                    newColors[0] = {
+                        ...prevFirst,
+                        widthRatio: newColors[0].widthRatio !== undefined ? newColors[0].widthRatio : 1,
+                        locked: prevFirst.locked !== undefined ? prevFirst.locked : false
+                    };
+                }
 
                 // 修正: 既存の色配列（this.currentColors）の中でロックされている位置の色は、色数や生成処理に関わらず絶対に上書きされず保持されるようにする
                 newColors = newColors.map((c, i) => {
