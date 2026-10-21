@@ -277,7 +277,7 @@
             <div>
                 <div class="flex justify-between items-center mb-2">
                     <label id="txt-palette-category" class="text-xs font-semibold uppercase tracking-wider opacity-70">配色カテゴリ</label>
-                    <button id="reset-category-btn" class="w-6 h-6 rounded-full bg-white/10 hover-white-bg flex items-center justify-center transition-colors cursor-pointer" title="OKLCHトーン設定をリセット">
+                    <button id="reset-category-btn" class="w-6 h-6 rounded-full bg-white/10 hover-white-bg flex items-center justify-center transition-colors cursor-pointer" title="トーン設定をリセット">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 3v5h-5" />
@@ -285,7 +285,7 @@
                     </button>
                 </div>
                 <select id="main-mode" class="w-full bg-black/40 border border-white/20 rounded-lg p-2 text-white text-sm outline-none focus:border-indigo-500 transition-colors mb-2 cursor-pointer">
-                    <option value="hue_tone">① OKLCH色相トーン配色</option>
+                    <option value="hue_tone">① 色相トーン配色</option>
                     <option value="theory">② 色彩理論・体系配色</option>
                     <option value="image">③ イメージワード配色</option>
                 </select>
@@ -701,6 +701,10 @@
                     <h4 id="txt-edit-help-title" class="font-bold text-blue-400 mb-2">編集パネルの機能と仕様</h4>
                     <div class="space-y-3">
                         <div>
+                            <strong id="txt-help-display-label" class="text-white block mb-0.5">表示モード</strong>
+                            <p id="txt-help-display-desc" class="text-gray-300 leading-relaxed">グラデーション表示（色の境目を滑らかにつなぐ）と分割表示（色境界を明確に区切る）を切り替えられます。また、RGB / HSV / OKLCH ボタンでグラデーションの補間基準となる色空間を選択できます。</p>
+                        </div>
+                        <div>
                             <strong id="txt-help-cat-label" class="text-white block mb-0.5">配色カテゴリ</strong>
                             <p id="txt-help-cat-desc" class="text-gray-300 leading-relaxed mb-1.5">3つのカテゴリから選択して配色を生成できます。</p>
                             <div class="pl-2 border-l-2 border-blue-400/50 space-y-1.5">
@@ -767,10 +771,6 @@
                         <div>
                             <strong id="txt-help-single-label" class="text-white block mb-0.5">単色調整</strong>
                             <p id="txt-help-single-desc" class="text-gray-300 leading-relaxed">選択中（クリック/フォーカス）の色領域に対してのみ、個別に色相・彩度・明度を微調整できます。確定（保存）ボタンで調整を固定できます。</p>
-                        </div>
-                        <div>
-                            <strong id="txt-help-display-label" class="text-white block mb-0.5">表示モード</strong>
-                            <p id="txt-help-display-desc" class="text-gray-300 leading-relaxed">グラデーション表示（色の境目を滑らかにつなぐ）と分割表示（色境界を明確に区切る）を切り替えられます。</p>
                         </div>
                         <div>
                             <strong id="txt-help-preview-label" class="text-white block mb-0.5">リアルタイムプレビュー</strong>
@@ -856,14 +856,14 @@
                     { value: 'custom', label: 'カスタムステップ調整' }
                 ],
                 theory: [
-                    { value: 'gradient_scale', label: 'グラデーション配色 (ベース・末端間補間)' },
+                    { value: 'gradient_scale', label: 'グラデーション (両端間補間)' },
                     { value: 'camaieu', label: 'カマイユ (微小変化)' },
                     { value: 'faux_camaieu', label: 'フォカマイユ (類似変化)' },
                     { value: 'dominant_color', label: 'ドミナントカラー (同一色相)' },
                     { value: 'dominant_tone', label: 'ドミナントトーン (同一トーン)' },
                     { value: 'tone_on_tone', label: 'トーンオントーン (明度対比)' },
                     { value: 'tone_in_tone', label: 'トーンイントーン (類似トーン)' },
-                    { value: 'tonal', label: 'トーナル配色 (ダルトーン系)' },
+                    { value: 'tonal', label: 'トーナル (ダルトーン系)' },
                     { value: 'accent_color', label: 'アクセントカラー (対照色強調)' },
                     { value: 'dyad', label: 'ダイアード / 2色補色 (2色)', targetCount: 2 },
                     { value: 'bicolor', label: 'ビコロール配色 (2色)', targetCount: 2 },
@@ -1450,7 +1450,7 @@
                             toggleSplitView: '配色の左右配置を反転',
                             closeDrawer: '閉じる',
                             openDrawer: '編集メニューを開く',
-                            resetCategory: 'OKLCHトーン設定をリセット',
+                            resetCategory: 'トーン設定をリセット',
                             resetGlobal: '調整をリセット',
                             commitSingle: '単色調整を確定（保存）',
                             resetSingle: '単色調整をリセット',
@@ -1583,19 +1583,19 @@
                             editHelpTitle: '編集パネルの機能と仕様',
                             helpCatLabel: '配色カテゴリ',
                             helpCatDesc: '3つのカテゴリから選択して配色を生成できます。',
-                            catSubHueTone: '1. OKLCH色彩トーン配色',
+                            catSubHueTone: '1. 色相トーン配色',
                             descSubHueTone: '色相ステップ・彩度ステップ・明度ステップのスライダーを調整し、指定した一定のルールに基づいて規則的な階調の配色を作成できます。',
                             catSubTheory: '2. 色彩理論・体系配色',
                             descSubTheory: '色彩学やデザイン理論に基づいた体系的な配色ルールを適用できます。選択項目は以下の通りです。',
                             listSubTheory: [
-                                'グラデーション配色 (ベース・末端間補間)',
+                                'グラデーション (両端間補間)',
                                 'カマイユ (微小変化)',
                                 'フォカマイユ (類似変化)',
                                 'ドミナントカラー (同一色相)',
                                 'ドミナントトーン (同一トーン)',
                                 'トーンオントーン (明度対比)',
                                 'トーンイントーン (類似トーン)',
-                                'トーナル配色 (ダルトーン系)',
+                                'トーナル (ダルトーン系)',
                                 'アクセントカラー (対照色強調)',
                                 'ダイアード / 2色補色 (2色)',
                                 'ビコロール配色 (2色)',
@@ -1637,7 +1637,7 @@
                             helpSingleLabel: '単色調整',
                             helpSingleDesc: '選択中（クリック/フォーカス）の色領域に対してのみ、個別に色相・彩度・明度を微調整できます。確定（保存）ボタンで調整を固定できます。',
                             helpDisplayLabel: '表示モード',
-                            helpDisplayDesc: 'グラデーション表示（色の境目を滑らかにつなぐ）と分割表示（色境界を明確に区切る）を切り替えられます。',
+                            helpDisplayDesc: 'グラデーション表示（色の境目を滑らかにつなぐ）と分割表示（色境界を明確に区切る）を切り替えられます。また、RGB / HSV / OKLCH ボタンでグラデーションの補間基準となる色空間を選択できます。',
                             helpPreviewLabel: 'リアルタイムプレビュー',
                             helpPreviewDesc: 'サイドバー左端に縦長グラデーションを表示し、ドラッグ操作で直感的に色の順序を並べ替えられます。',
                             helpVisionLabel: '色覚多様性シミュレーター',
@@ -1658,17 +1658,17 @@
                             swipeKey: 'スワイプ (左右)',
                             swipeVal: '配色切り替え'
                         },
-                        mainModes: ['① OKLCH色相トーン配色', '② 色彩理論・体系配色', '③ イメージワード配色'],
+                        mainModes: ['① 色相トーン配色', '② 色彩理論・体系配色', '③ イメージワード配色'],
                         subModes: {
                             custom: 'カスタムステップ調整',
-                            gradient_scale: 'グラデーション配色 (ベース・末端間補間)',
+                            gradient_scale: 'グラデーション (両端間補間)',
                             camaieu: 'カマイユ (微小変化)',
                             faux_camaieu: 'フォカマイユ (類似変化)',
                             dominant_color: 'ドミナントカラー (同一色相)',
                             dominant_tone: 'ドミナントトーン (同一トーン)',
                             tone_on_tone: 'トーンオントーン (明度対比)',
                             tone_in_tone: 'トーンイントーン (類似トーン)',
-                            tonal: 'トーナル配色 (ダルトーン系)',
+                            tonal: 'トーナル (ダルトーン系)',
                             accent_color: 'アクセントカラー (対照色強調)',
                             dyad: 'ダイアード / 2色補色 (2色)',
                             bicolor: 'ビコロール配色 (2色)',
@@ -1711,7 +1711,7 @@
                             toggleSplitView: 'Reverse Palette Layout',
                             closeDrawer: 'Close',
                             openDrawer: 'Open Edit Menu',
-                            resetCategory: 'Reset OKLCH Tone Settings',
+                            resetCategory: 'Reset Tone Settings',
                             resetGlobal: 'Reset Global Adjustments',
                             commitSingle: 'Commit Single Adjustment',
                             resetSingle: 'Reset Single Adjustment',
@@ -1848,12 +1848,12 @@
                             editHelpTitle: 'Edit Panel Specifications',
                             helpCatLabel: 'Palette Category',
                             helpCatDesc: 'Generate color palettes from 3 distinct categories.',
-                            catSubHueTone: '1. OKLCH Hue & Tone',
+                            catSubHueTone: '1. Hue & Tone',
                             descSubHueTone: 'Adjust Hue, Chroma, and Lightness step sliders to build structured gradient scales.',
                             catSubTheory: '2. Color Theory & Systems',
                             descSubTheory: 'Apply systematic color rules based on color theory. Available options:',
                             listSubTheory: [
-                                'Gradient Scale (Base-End Interpolation)',
+                                'Gradient (Both-Ends Interpolation)',
                                 'Camaieu (Micro Variation)',
                                 'Faux Camaieu (Similar Variation)',
                                 'Dominant Color (Same Hue)',
@@ -1902,7 +1902,7 @@
                             helpSingleLabel: 'Single Color Adjustment',
                             helpSingleDesc: 'Fine-tune Hue, Chroma, and Lightness specifically for the selected (clicked/focused) color pane. Lock/save adjustments using the commit button.',
                             helpDisplayLabel: 'Display Modes',
-                            helpDisplayDesc: 'Switch between Gradient mode (smooth transitions) and Split mode (distinct color borders).',
+                            helpDisplayDesc: 'Switch between Gradient mode (smooth transitions) and Split mode (distinct color borders). You can also select the color space (RGB, HSV, or OKLCH) used as the interpolation baseline for gradients.',
                             helpPreviewLabel: 'Real-time Preview Bar',
                             helpPreviewDesc: 'Displays a vertical gradient on the left edge of the sidebar. Reorder colors intuitively via drag-and-drop.',
                             helpVisionLabel: 'Color Vision Simulator',
@@ -1923,10 +1923,10 @@
                             swipeKey: 'Swipe (Left/Right)',
                             swipeVal: 'Switch Palette'
                         },
-                        mainModes: ['① OKLCH Hue & Tone', '② Color Theory & Systems', '③ Image Words'],
+                        mainModes: ['① Hue & Tone', '② Color Theory & Systems', '③ Image Words'],
                         subModes: {
                             custom: 'Custom Step Adjustment',
-                            gradient_scale: 'Gradient Scale (Base-End Interpolation)',
+                            gradient_scale: 'Gradient (Both-Ends Interpolation)',
                             camaieu: 'Camaieu (Micro Variation)',
                             faux_camaieu: 'Faux Camaieu (Similar Variation)',
                             dominant_color: 'Dominant Color (Same Hue)',
@@ -2675,7 +2675,7 @@
                 this.saveState();
             }
 
-            setSubDisplayMode(mode) {
+            setSubDisplayMode(mode, recordHistory = true) {
                 this.colorSpace = mode;
                 ['rgb', 'hsv', 'oklch'].forEach(m => {
                     const btn = this.dom[`mode${m.charAt(0).toUpperCase() + m.slice(1)}`];
@@ -2692,6 +2692,9 @@
                     this.generateNewPalette(true, false);
                 } else {
                     this.updateBackground();
+                }
+                if (recordHistory) {
+                    this.pushHistory();
                 }
                 this.saveState();
             }
@@ -2899,13 +2902,7 @@
                 }
             }
 
-            commitSingleAdjustment() {
-                const h = parseFloat(this.dom.singleHueInput ? this.dom.singleHueInput.value : 0) || 0;
-                const s = parseFloat(this.dom.singleSatInput ? this.dom.singleSatInput.value : 0) || 0;
-                const l = parseFloat(this.dom.singleLitInput ? this.dom.singleLitInput.value : 0) || 0;
-
-                if (h === 0 && s === 0 && l === 0) return;
-
+            commitSingleAdjustment(recordHistory = true) {
                 if (this.selectedColorIndex >= 0 && this.selectedColorIndex < this.currentColors.length) {
                     const c = this.currentColors[this.selectedColorIndex];
                     if (c) {
@@ -2916,7 +2913,21 @@
                         let baseH = (c.oklch.h - globalHue) % 360;
                         if (baseH < 0) baseH += 360;
                         let baseC = Math.max(0.0, Math.min(1.0, c.oklch.c / (1.0 + globalSat)));
-                        let baseL = Math.max(0.0, Math.min(1.0, c.oklch.l - globalLit));
+                        
+                        let baseL = c.oklch.l;
+                        if (globalLit !== 0) {
+                            if (globalLit > 0) {
+                                baseL = (c.oklch.l - globalLit) / (1.0 - globalLit);
+                            } else {
+                                baseL = c.oklch.l / (1.0 + globalLit);
+                            }
+                        }
+                        baseL = Math.max(0.0, Math.min(1.0, baseL));
+
+                        const isAchromatic = c.oklch.c < 0.005 || (c.rgb[0] === c.rgb[1] && c.rgb[1] === c.rgb[2]) || (c.rgb[0] >= 250 && c.rgb[1] >= 250 && c.rgb[2] >= 250) || (c.rgb[0] <= 5 && c.rgb[1] <= 5 && c.rgb[2] <= 5);
+                        if (isAchromatic) {
+                            baseC = 0;
+                        }
 
                         c.originalOklch = { l: baseL, c: baseC, h: baseH };
                     }
@@ -2928,6 +2939,8 @@
                 if (this.dom.singleSatInput) this.dom.singleSatInput.value = 0;
                 if (this.dom.singleLitSlider) this.dom.singleLitSlider.value = 0;
                 if (this.dom.singleLitInput) this.dom.singleLitInput.value = 0;
+
+                this.applyGlobalAdjustmentsAndRender(recordHistory);
             }
 
             resetSingleSettings() {
@@ -2953,6 +2966,18 @@
                 const subVal = this.dom.subMode.value;
                 const count = parseInt(this.dom.colorCountSlider.value);
 
+                const selectedColor = this.currentColors[this.selectedColorIndex];
+                const isSelectedLocked = selectedColor && selectedColor.locked;
+
+                if (!isSelectedLocked) {
+                    if (this.dom.singleHueSlider) this.dom.singleHueSlider.value = 0;
+                    if (this.dom.singleHueInput) this.dom.singleHueInput.value = 0;
+                    if (this.dom.singleSatSlider) this.dom.singleSatSlider.value = 0;
+                    if (this.dom.singleSatInput) this.dom.singleSatInput.value = 0;
+                    if (this.dom.singleLitSlider) this.dom.singleLitSlider.value = 0;
+                    if (this.dom.singleLitInput) this.dom.singleLitInput.value = 0;
+                }
+
                 const settings = {
                     hueStep: parseFloat(this.dom.hueStepInput.value) || 0,
                     satStep: parseFloat(this.dom.satStepInput.value) || 0,
@@ -2964,52 +2989,16 @@
                 let endState = null;
                 if (keepBase && this.currentColors.length > 0) {
                     const firstColor = this.currentColors[0];
-                    const oklch = firstColor.oklch || ColorMath.rgbToOklch(...firstColor.rgb);
-                    
-                    const globalHue = parseFloat(this.dom.globalHueInput.value) || 0;
-                    const globalSat = (parseFloat(this.dom.globalSatInput.value) || 0) / 100;
-                    const globalLit = (parseFloat(this.dom.globalLitInput.value) || 0) / 100;
-
-                    let h = (oklch.h - globalHue) % 360;
-                    if (h < 0) h += 360;
-                    let c_val = Math.max(0.0, Math.min(1.0, oklch.c / (1.0 + globalSat)));
-                    let l = Math.max(0.0, Math.min(1.0, oklch.l - globalLit));
-
-                    baseState = { l, c: c_val, h };
+                    const oklch = firstColor.originalOklch || firstColor.oklch || ColorMath.rgbToOklch(...firstColor.rgb);
+                    baseState = { l: oklch.l, c: oklch.c, h: oklch.h };
 
                     const lastColor = this.currentColors[this.currentColors.length - 1];
-                    const lastOklch = lastColor.oklch || ColorMath.rgbToOklch(...lastColor.rgb);
-                    let lastH = (lastOklch.h - globalHue) % 360;
-                    if (lastH < 0) lastH += 360;
-                    let lastC = Math.max(0.0, Math.min(1.0, lastOklch.c / (1.0 + globalSat)));
-                    let lastL = Math.max(0.0, Math.min(1.0, lastOklch.l - globalLit));
-                    endState = { l: lastL, c: lastC, h: lastH };
+                    const lastOklch = lastColor.originalOklch || lastColor.oklch || ColorMath.rgbToOklch(...lastColor.rgb);
+                    endState = { l: lastOklch.l, c: lastOklch.c, h: lastOklch.h };
                 }
 
                 // 新しく生成
                 let newColors = PaletteGenerator.generate(mainVal, subVal, count, settings, baseState, endState);
-
-                const globalHue = parseFloat(this.dom.globalHueInput.value) || 0;
-                const globalSat = (parseFloat(this.dom.globalSatInput.value) || 0) / 100;
-                const globalLit = (parseFloat(this.dom.globalLitInput.value) || 0) / 100;
-
-                if (globalHue !== 0 || globalSat !== 0 || globalLit !== 0) {
-                    newColors.forEach(c => {
-                        if (!c.originalOklch) c.originalOklch = { ...c.oklch };
-                        
-                        const orig = c.originalOklch;
-                        let h = (orig.h + globalHue) % 360;
-                        if (h < 0) h += 360;
-                        let c_val = Math.max(0.0, Math.min(1.0, orig.c * (1.0 + globalSat)));
-                        let l = Math.max(0.0, Math.min(1.0, orig.l + globalLit));
-
-                        const oklch = { l, c: c_val, h };
-                        const rgb = ColorMath.oklchToRgb(oklch.l, oklch.c, oklch.h);
-                        c.oklch = oklch;
-                        c.rgb = rgb;
-                        c.hex = ColorMath.rgbToHex(rgb[0], rgb[1], rgb[2]);
-                    });
-                }
 
                 // 修正: 既存の色配列（this.currentColors）の中でロックされている位置の色は、色数や生成処理に関わらず絶対に上書きされず保持されるようにする
                 newColors = newColors.map((c, i) => {
@@ -3052,7 +3041,7 @@
                 });
 
                 this.currentColors = newColors;
-                this.renderPanes();
+                this.applyGlobalAdjustmentsAndRender(false);
 
                 if (recordHistory) {
                     this.pushHistory(this.currentColors);
@@ -4168,6 +4157,8 @@
                             bulkLockToggleBtn.textContent = hasLocked ? '🔒' : '🔓';
                             bulkLockToggleBtn.title = hasLocked ? '一括ロック解除' : '一括ロック';
                         }
+                        this.history = [];
+                        this.historyIndex = -1;
                         this.pushHistory(this.currentColors);
                         this.updateTexts();
                         return true;
@@ -4222,7 +4213,8 @@
                     litStep: this.dom.litStepInput.value,
                     visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal',
                     webPreviewVisible: this.dom.webPreviewScreen ? !this.dom.webPreviewScreen.classList.contains('hidden') : false,
-                    isWebColorTextMode: this.isWebColorTextMode
+                    isWebColorTextMode: this.isWebColorTextMode,
+                    colorSpace: this.colorSpace || 'oklch'
                 };
                 if (this.historyIndex >= 0 && this.history[this.historyIndex]) {
                     if (JSON.stringify(this.history[this.historyIndex]) === JSON.stringify(currentState)) return;
@@ -4319,6 +4311,9 @@
                     } else if (this.dom.webSwitchBtn) {
                         this.dom.webSwitchBtn.style.opacity = '';
                     }
+                }
+                if (state.colorSpace !== undefined) {
+                    this.setSubDisplayMode(state.colorSpace, false);
                 }
                 this.renderPanes();
                 const bulkLockToggleBtn = document.getElementById('bulk-lock-toggle-btn');
@@ -5388,6 +5383,8 @@
                             };
                         });
                         this.renderPanes();
+                        this.history = [];
+                        this.historyIndex = -1;
                         this.pushHistory(this.currentColors);
                         return true;
                     }
