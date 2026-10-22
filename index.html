@@ -5440,7 +5440,14 @@
 
             copyShareUrl() {
                 const state = {
-                    colors: this.currentColors.map(c => ({ hex: c.hex, widthRatio: c.widthRatio })),
+                    colors: this.currentColors.map(c => ({
+                        hex: c.hex,
+                        widthRatio: c.widthRatio,
+                        singleHue: c.singleHue || 0,
+                        singleSat: c.singleSat || 0,
+                        singleLit: c.singleLit || 0,
+                        originalOklch: c.originalOklch ? { ...c.originalOklch } : null
+                    })),
                     mainMode: this.dom.mainMode.value,
                     subMode: this.dom.subMode.value,
                     colorCount: this.dom.colorCountSlider.value,
@@ -5520,12 +5527,16 @@
                                 rgb,
                                 hex: sc.hex,
                                 oklch,
-                                originalOklch: { ...oklch },
+                                originalOklch: sc.originalOklch ? { ...sc.originalOklch } : { ...oklch },
+                                singleHue: sc.singleHue !== undefined ? sc.singleHue : 0,
+                                singleSat: sc.singleSat !== undefined ? sc.singleSat : 0,
+                                singleLit: sc.singleLit !== undefined ? sc.singleLit : 0,
                                 widthRatio: sc.widthRatio !== undefined ? sc.widthRatio : 1,
                                 locked: false
                             };
                         });
                         this.renderPanes();
+                        this.selectColor(0);
                         this.history = [];
                         this.historyIndex = -1;
                         this.pushHistory(this.currentColors);
