@@ -2935,29 +2935,28 @@
             }
 
             commitGlobalAdjustment(recordHistory = true) {
-                const globalHue = parseFloat(this.dom.globalHueInput.value) || 0;
-                const globalSat = (parseFloat(this.dom.globalSatInput.value) || 0) / 100;
-                const globalLit = (parseFloat(this.dom.globalLitInput.value) || 0) / 100;
+                if (this.currentColors.length > 0) {
+                    const globalHue = parseFloat(this.dom.globalHueInput.value) || 0;
+                    const globalSat = (parseFloat(this.dom.globalSatInput.value) || 0) / 100;
+                    const globalLit = (parseFloat(this.dom.globalLitInput.value) || 0) / 100;
 
-                if (globalHue !== 0 || globalSat !== 0 || globalLit !== 0) {
-                    this.currentColors.forEach(c => {
-                        if (!c.originalOklch) {
-                            c.originalOklch = { ...c.oklch };
-                        }
-                        const orig = c.originalOklch;
-                        let h = (orig.h + globalHue) % 360;
-                        if (h < 0) h += 360;
-                        let c_val = Math.max(0.0, Math.min(1.0, orig.c * (1.0 + globalSat)));
-                        let l = globalLit >= 0 ? orig.l + (1.0 - orig.l) * globalLit : orig.l * (1.0 + globalLit);
-                        l = Math.max(0.0, Math.min(1.0, l));
+                    if (globalHue !== 0 || globalSat !== 0 || globalLit !== 0) {
+                        this.currentColors.forEach(c => {
+                            if (!c.originalOklch) {
+                                c.originalOklch = { ...c.oklch };
+                            }
+                            let h = (c.originalOklch.h + globalHue) % 360;
+                            if (h < 0) h += 360;
+                            let c_val = Math.max(0.0, Math.min(1.0, c.originalOklch.c * (1.0 + globalSat)));
+                            let l = globalLit >= 0 ? c.originalOklch.l + (1.0 - c.originalOklch.l) * globalLit : c.originalOklch.l * (1.0 + globalLit);
 
-                        const isAchromatic = c.oklch.c < 0.005 || (c.rgb[0] === c.rgb[1] && c.rgb[1] === c.rgb[2]) || (c.rgb[0] >= 250 && c.rgb[1] >= 250 && c.rgb[2] >= 250) || (c.rgb[0] <= 5 && c.rgb[1] <= 5 && c.rgb[2] <= 5);
-                        if (isAchromatic) {
-                            c_val = 0;
-                        }
-
-                        c.originalOklch = { l, c: c_val, h };
-                    });
+                            const isAchromatic = c.oklch.c < 0.005 || (c.rgb[0] === c.rgb[1] && c.rgb[1] === c.rgb[2]);
+                            if (isAchromatic) {
+                                c_val = 0;
+                            }
+                            c.originalOklch = { l, c: c_val, h };
+                        });
+                    }
                 }
 
                 if (this.dom.globalHueSlider) this.dom.globalHueSlider.value = 0;
@@ -4446,6 +4445,7 @@
                     satStep: this.dom.satStepInput.value,
                     litStep: this.dom.litStepInput.value,
                     visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal',
+                    colorSpace: this.colorSpace || 'oklch',
                     colors: JSON.parse(JSON.stringify(this.currentColors))
                 };
                 this.stocks.push(newStock);
@@ -4865,25 +4865,69 @@
                             previewBar.appendChild(colorDiv);
                         });
                     } else {
-                        let currentPercent = 0;
-                        const stops = [];
-                        ratios.forEach((ratio, i) => {
-                            const widthPercent = (ratio / totalRatio) * 100;
-                            const startPct = currentPercent;
-                            const endPct = currentPercent + widthPercent;
-                            const midPct = startPct + ((endPct - startPct) / 2);
+                        const colorSpace = stock.colorSpace || 'oklch';
+                        const interpolateOklch = (colorA, colorB, t) => {
+                            return {
+                                l: colorA.l + (colorB.l - colorA.l) * t,
+                                c: colorA.c + (colorB.c - colorA.c) * t,
+                                h: colorA.h + ((colorB.h - colorA.h + 540) % 360 - 180) * t
+                            };
+                        };
 
-                            if (i === 0) {
-                                stops.push(`${hexes[i]} ${startPct}%`);
-                                stops.push(`${hexes[i]} ${midPct}%`);
-                            } else if (i === hexes.length - 1) {
-                                stops.push(`${hexes[i]} ${midPct}%`);
-                                stops.push(`${hexes[i]} 100%`);
-                            } else {
-                                stops.push(`${hexes[i]} ${midPct}%`);
+                        let currentPercent = 0;
+                        const canvasStops = [];
+                        ratios.forEach((ratio, i) => {
+                            const percent = (ratio / totalRatio) * 100;
+                            const startPct = currentPercent;
+                            let endPct = currentPercent + percent;
+                            if (i === ratios.length - 1) endPct = 100;
+                            const pct = (i === 0) ? 0 : (i === ratios.length - 1 ? 100 : startPct + (percent / 2));
+                            
+                            let interpData = stock.colors[i].oklch;
+                            if (!interpData && stock.colors[i].rgb) {
+                                interpData = ColorMath.rgbToOklch(...stock.colors[i].rgb);
                             }
+                            if (colorSpace === 'rgb') {
+                                interpData = { r: stock.colors[i].rgb[0], g: stock.colors[i].rgb[1], b: stock.colors[i].rgb[2] };
+                            } else if (colorSpace === 'hsv') {
+                                interpData = ColorMath.rgbToHsv(...stock.colors[i].rgb);
+                            }
+                            canvasStops.push({ pct: pct / 100, data: interpData });
                             currentPercent = endPct;
                         });
+
+                        const stops = [];
+                        for (let i = 0; i < canvasStops.length - 1; i++) {
+                            const stopA = canvasStops[i];
+                            const stopB = canvasStops[i + 1];
+                            const steps = 10;
+                            for (let s = 0; s <= steps; s++) {
+                                const t = s / steps;
+                                const p = (stopA.pct + (stopB.pct - stopA.pct) * t) * 100;
+                                let hex = '';
+                                if (colorSpace === 'oklch') {
+                                    const interpolated = interpolateOklch(stopA.data, stopB.data, t);
+                                    const rgb = ColorMath.oklchToRgb(interpolated.l, interpolated.c, interpolated.h);
+                                    const simRgb = this.getSimulatedRgb(rgb);
+                                    hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                } else if (colorSpace === 'rgb') {
+                                    const r = stopA.data.r + (stopB.data.r - stopA.data.r) * t;
+                                    const g = stopA.data.g + (stopB.data.g - stopA.data.g) * t;
+                                    const b = stopA.data.b + (stopB.data.b - stopA.data.b) * t;
+                                    const simRgb = this.getSimulatedRgb([r, g, b]);
+                                    hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                } else if (colorSpace === 'hsv') {
+                                    let h = stopA.data.h + ((stopB.data.h - stopA.data.h + 540) % 360 - 180) * t;
+                                    h = (h % 360 + 360) % 360;
+                                    const sat = stopA.data.s + (stopB.data.s - stopA.data.s) * t;
+                                    const v = stopA.data.v + (stopB.data.v - stopA.data.v) * t;
+                                    const rgb = ColorMath.hsvToRgb(h, sat, v);
+                                    const simRgb = this.getSimulatedRgb(rgb);
+                                    hex = ColorMath.rgbToHex(simRgb[0], simRgb[1], simRgb[2]);
+                                }
+                                stops.push(`${hex} ${p}%`);
+                            }
+                        }
                         previewBar.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
                     }
 
@@ -4901,6 +4945,9 @@
                         }
                         if (stock.isSplitMode !== undefined) {
                             this.setDisplayMode(stock.isSplitMode);
+                        }
+                        if (stock.colorSpace !== undefined) {
+                            this.setSubDisplayMode(stock.colorSpace, false);
                         }
                         if (stock.globalHue !== undefined) {
                             this.dom.globalHueSlider.value = stock.globalHue;
