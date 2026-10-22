@@ -4388,6 +4388,7 @@
                     this.setSubDisplayMode(state.colorSpace, false);
                 }
                 this.renderPanes();
+                this.applyGlobalAdjustmentsAndRender(false);
                 const bulkLockToggleBtn = document.getElementById('bulk-lock-toggle-btn');
                 if (bulkLockToggleBtn) {
                     const hasLocked = this.currentColors.some(c => c.locked);
