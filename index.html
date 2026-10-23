@@ -382,6 +382,11 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-1">
+                        <button id="commit-single-btn" class="w-6 h-6 rounded-full bg-white/10 hover-white-bg flex items-center justify-center transition-colors cursor-pointer" title="単色調整を確定（保存）">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </button>
                         <button id="reset-all-single-btn" class="w-6 h-6 rounded-full bg-white/10 hover-white-bg flex items-center justify-center transition-colors cursor-pointer" title="全ての単色調整をリセット">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 0114.93-4M20 12a8 8 0 01-14.93 4" />
@@ -1425,6 +1430,7 @@
                     singleLitSlider: document.getElementById('single-lit-slider'),
                     singleLitInput: document.getElementById('single-lit-input'),
                     commitSingleBtn: document.getElementById('commit-single-btn'),
+                    commitSingleBtn: document.getElementById('commit-single-btn'),
                     resetAllSingleBtn: document.getElementById('reset-all-single-btn'),
                     resetSingleBtn: document.getElementById('reset-single-btn'),
                     prevSingleColorBtn: document.getElementById('prev-single-color-btn'),
@@ -1993,6 +1999,9 @@
                 }
                 if (this.dom.resetGlobalBtn) {
                     this.dom.resetGlobalBtn.addEventListener('click', () => this.resetGlobalSettings());
+                }
+                if (this.dom.commitSingleBtn) {
+                    this.dom.commitSingleBtn.addEventListener('click', () => this.commitSingleAdjustment());
                 }
                 if (this.dom.resetAllSingleBtn) {
                     this.dom.resetAllSingleBtn.addEventListener('click', () => this.resetAllSingleSettings());
@@ -2877,6 +2886,50 @@
                 }
             }
 
+            commitSingleAdjustment(recordHistory = true) {
+                if (this.selectedColorIndex >= 0 && this.selectedColorIndex < this.currentColors.length) {
+                    const c = this.currentColors[this.selectedColorIndex];
+                    if (c) {
+                        const globalHue = parseFloat(this.dom.globalHueInput.value) || 0;
+                        const globalSat = (parseFloat(this.dom.globalSatInput.value) || 0) / 100;
+                        const globalLit = (parseFloat(this.dom.globalLitInput.value) || 0) / 100;
+
+                        let baseH = (c.oklch.h - globalHue) % 360;
+                        if (baseH < 0) baseH += 360;
+                        let baseC = Math.max(0.0, Math.min(1.0, c.oklch.c / (1.0 + globalSat)));
+                        
+                        let baseL = c.oklch.l;
+                        if (globalLit !== 0) {
+                            if (globalLit > 0) {
+                                baseL = (c.oklch.l - globalLit) / (1.0 - globalLit);
+                            } else {
+                                baseL = c.oklch.l / (1.0 + globalLit);
+                            }
+                        }
+                        baseL = Math.max(0.0, Math.min(1.0, baseL));
+
+                        const isAchromatic = c.oklch.c < 0.005 || (c.rgb[0] === c.rgb[1] && c.rgb[1] === c.rgb[2]) || (c.rgb[0] >= 250 && c.rgb[1] >= 250 && c.rgb[2] >= 250) || (c.rgb[0] <= 5 && c.rgb[1] <= 5 && c.rgb[2] <= 5);
+                        if (isAchromatic) {
+                            baseC = 0;
+                        }
+
+                        c.originalOklch = { l: baseL, c: baseC, h: baseH };
+                        c.singleHue = 0;
+                        c.singleSat = 0;
+                        c.singleLit = 0;
+                    }
+                }
+
+                if (this.dom.singleHueSlider) this.dom.singleHueSlider.value = 0;
+                if (this.dom.singleHueInput) this.dom.singleHueInput.value = 0;
+                if (this.dom.singleSatSlider) this.dom.singleSatSlider.value = 0;
+                if (this.dom.singleSatInput) this.dom.singleSatInput.value = 0;
+                if (this.dom.singleLitSlider) this.dom.singleLitSlider.value = 0;
+                if (this.dom.singleLitInput) this.dom.singleLitInput.value = 0;
+
+                this.applyGlobalAdjustmentsAndRender(recordHistory);
+            }
+
             toggleWebControls(hide) {
                 this.isWebControlsHidden = hide;
                 const openDrawerBtn = document.getElementById('open-drawer-btn');
@@ -2982,6 +3035,9 @@
                         }
 
                         c.originalOklch = { l: baseL, c: baseC, h: baseH };
+                        c.singleHue = 0;
+                        c.singleSat = 0;
+                        c.singleLit = 0;
                     }
                 }
 
@@ -4172,6 +4228,9 @@
                     }
                     if (state.isSplitMode !== undefined) {
                         this.setDisplayMode(state.isSplitMode, false);
+                    }
+                    if (state.colorSpace !== undefined) {
+                        this.setSubDisplayMode(state.colorSpace, false);
                     }
                     if (state.isPreviewHidden !== undefined) {
                         this.isPreviewHidden = state.isPreviewHidden;
@@ -5504,6 +5563,9 @@
                     this.updateSubModes();
                     if (state.subMode) this.dom.subMode.value = state.subMode;
                     if (state.isSplitMode !== undefined) this.setDisplayMode(state.isSplitMode, false);
+                    if (state.colorSpace !== undefined) {
+                        this.setSubDisplayMode(state.colorSpace, false);
+                    }
                     if (state.globalHue !== undefined) {
                         this.dom.globalHueSlider.value = state.globalHue;
                         this.dom.globalHueInput.value = state.globalHue;
