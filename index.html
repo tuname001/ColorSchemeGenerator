@@ -2718,7 +2718,6 @@
             }
 
             setSubDisplayMode(mode, recordHistory = true) {
-                this.commitSingleAdjustment(false);
                 this.colorSpace = mode;
                 ['rgb', 'hsv', 'oklch'].forEach(m => {
                     const btn = this.dom[`mode${m.charAt(0).toUpperCase() + m.slice(1)}`];
@@ -2731,11 +2730,14 @@
                         btn.style.backgroundColor = '';
                     }
                 });
-                if (this.dom.mainMode.value === 'theory' && this.dom.subMode.value === 'gradient_scale' && this.currentColors.length > 0) {
+
+                // グラデーション補間モード(gradient_scale)の場合は、カラー空間の変更時に両端間の色を再計算して中間色を更新する
+                if (this.dom.mainMode.value === 'theory' && this.dom.subMode.value === 'gradient_scale') {
                     this.generateNewPalette(true, false);
                 } else {
                     this.updateBackground();
                 }
+
                 if (recordHistory) {
                     this.pushHistory();
                 }
@@ -3060,33 +3062,50 @@
 
                 let baseState = null;
                 let endState = null;
-                if (keepBase && this.currentColors.length > 0) {
+                if (this.currentColors.length > 0) {
                     const firstColor = this.currentColors[0];
-                    const oklch = firstColor.oklch || firstColor.originalOklch || ColorMath.rgbToOklch(...firstColor.rgb);
-                    baseState = { l: oklch.l, c: oklch.c, h: oklch.h };
+                    if (keepBase || (firstColor && firstColor.locked)) {
+                        const oklch = firstColor.originalOklch || firstColor.oklch || ColorMath.rgbToOklch(...firstColor.rgb);
+                        baseState = { l: oklch.l, c: oklch.c, h: oklch.h };
+                    }
 
                     const lastColor = this.currentColors[this.currentColors.length - 1];
-                    const lastOklch = lastColor.oklch || lastColor.originalOklch || ColorMath.rgbToOklch(...lastColor.rgb);
-                    endState = { l: lastOklch.l, c: lastOklch.c, h: lastOklch.h };
+                    const isGradient = this.dom.subMode.value === 'gradient_scale';
+                    if (keepBase || (lastColor && lastColor.locked) || (isGradient && keepBase)) {
+                        const lastOklch = lastColor.originalOklch || lastColor.oklch || ColorMath.rgbToOklch(...lastColor.rgb);
+                        endState = { l: lastOklch.l, c: lastOklch.c, h: lastOklch.h };
+                    }
                 }
 
                 // 新しく生成
                 let newColors = PaletteGenerator.generate(mainVal, subVal, count, settings, baseState, endState);
 
-                if (keepBase && this.currentColors.length > 0 && subVal === 'gradient_scale') {
+                if (this.currentColors.length > 0 && subVal === 'gradient_scale') {
                     const prevFirst = this.currentColors[0];
-                    newColors[0] = {
-                        ...prevFirst,
-                        widthRatio: newColors[0].widthRatio !== undefined ? newColors[0].widthRatio : 1,
-                        locked: prevFirst.locked !== undefined ? prevFirst.locked : false
-                    };
+                    if (prevFirst && (keepBase || prevFirst.locked) && newColors.length > 0) {
+                        newColors[0] = {
+                            ...newColors[0],
+                            singleHue: prevFirst.singleHue || 0,
+                            singleSat: prevFirst.singleSat || 0,
+                            singleLit: prevFirst.singleLit || 0,
+                            originalOklch: { ...newColors[0].oklch },
+                            widthRatio: prevFirst.widthRatio !== undefined ? prevFirst.widthRatio : 1,
+                            locked: prevFirst.locked !== undefined ? prevFirst.locked : false
+                        };
+                    }
                     const prevLast = this.currentColors[this.currentColors.length - 1];
                     const lastIdx = newColors.length - 1;
-                    newColors[lastIdx] = {
-                        ...prevLast,
-                        widthRatio: newColors[lastIdx].widthRatio !== undefined ? newColors[lastIdx].widthRatio : 1,
-                        locked: prevLast.locked !== undefined ? prevLast.locked : false
-                    };
+                    if (prevLast && (keepBase || prevLast.locked) && lastIdx >= 0) {
+                        newColors[lastIdx] = {
+                            ...newColors[lastIdx],
+                            singleHue: prevLast.singleHue || 0,
+                            singleSat: prevLast.singleSat || 0,
+                            singleLit: prevLast.singleLit || 0,
+                            originalOklch: { ...newColors[lastIdx].oklch },
+                            widthRatio: prevLast.widthRatio !== undefined ? prevLast.widthRatio : 1,
+                            locked: prevLast.locked !== undefined ? prevLast.locked : false
+                        };
+                    }
                 }
 
                 // 修正: ロックされている色のみ古い状態を維持し、ロックされていない箇所は新しく生成された色に置き換える
@@ -3103,11 +3122,11 @@
 
                     return {
                         ...c,
-                        singleHue: 0,
-                        singleSat: 0,
-                        singleLit: 0,
+                        singleHue: old ? (old.singleHue || 0) : 0,
+                        singleSat: old ? (old.singleSat || 0) : 0,
+                        singleLit: old ? (old.singleLit || 0) : 0,
                         originalOklch: { ...c.oklch },
-                        widthRatio: 1,
+                        widthRatio: old && old.widthRatio !== undefined ? old.widthRatio : 1,
                         locked: false
                     };
                 });
@@ -3536,7 +3555,6 @@
                     lockBtn.title = colorObj.locked ? 'ロック中 (クリックで解除)' : 'クリックで色をロック';
                     lockBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        this.commitSingleAdjustment(); // ロックボタン押下時は例外として触れるに含まれないが、単色調整のコミットを行う
 
                         // オブジェクト更新後に、確実に対象の locked 状態を反転させる
                         if (this.currentColors[index]) {
@@ -3774,14 +3792,19 @@
                     const rgb = [num >> 16, (num >> 8) & 255, num & 255];
                     
                     const oklch = ColorMath.rgbToOklch(rgb[0], rgb[1], rgb[2]);
-                    
-                    // 修正: 既存の locked や widthRatio などのプロパティを確実に明示的に引き継ぐ
+
+                    // 手入力された領域を自動選択し、サイドバーのスライダー・入力欄を確実に 0 に同期させる
+                    this.selectColor(index);
+
                     this.currentColors[index] = { 
                         ...oldObj,
                         rgb, 
                         hex: hexValue.toUpperCase(), 
                         oklch,
                         originalOklch: { ...oklch },
+                        singleHue: 0,
+                        singleSat: 0,
+                        singleLit: 0,
                         widthRatio: oldObj.widthRatio !== undefined ? oldObj.widthRatio : 1,
                         locked: oldObj.locked !== undefined ? oldObj.locked : false
                     };
