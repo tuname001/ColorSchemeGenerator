@@ -4759,10 +4759,20 @@
                     }
                 }
                 if (state.colorSpace !== undefined) {
-                    this.setSubDisplayMode(state.colorSpace, false);
+                    this.colorSpace = state.colorSpace;
+                    ['rgb', 'hsv', 'oklch'].forEach(m => {
+                        const btn = this.dom[`mode${m.charAt(0).toUpperCase() + m.slice(1)}`];
+                        if (!btn) return;
+                        if (m === state.colorSpace) {
+                            btn.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-white shadow transition-all cursor-pointer';
+                            btn.style.backgroundColor = '#3B82F6';
+                        } else {
+                            btn.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-white/70 hover:text-white transition-all cursor-pointer';
+                            btn.style.backgroundColor = '';
+                        }
+                    });
                 }
                 this.renderPanes();
-                this.applyGlobalAdjustmentsAndRender(false);
                 if (state.selectedColorIndex !== undefined) {
                     this.selectColor(state.selectedColorIndex);
                 } else {
