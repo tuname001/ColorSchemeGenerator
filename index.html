@@ -4552,6 +4552,14 @@
                         this.dom.litStepSlider.value = state.litStep;
                         this.dom.litStepInput.value = state.litStep;
                     }
+                    if (state.visionMode && this.dom.visionModeSelect) {
+                        this.dom.visionModeSelect.value = state.visionMode;
+                    }
+                    if (state.exportShareSelect && this.dom.exportShareSelect) {
+                        this.dom.exportShareSelect.value = state.exportShareSelect;
+                    } else if (this.dom.exportShareSelect) {
+                        this.dom.exportShareSelect.value = 'url'; // 初回などのデフォルトをURL共有に設定
+                    }
                     if (state.currentColors && state.currentColors.length > 0) {
                         this.currentColors = state.currentColors;
                         this.renderPanes();
@@ -4571,14 +4579,6 @@
                         this.pushHistory(this.currentColors);
                         this.updateTexts();
                         return true;
-                    }
-                    if (state.visionMode && this.dom.visionModeSelect) {
-                        this.dom.visionModeSelect.value = state.visionMode;
-                    }
-                    if (state.exportShareSelect && this.dom.exportShareSelect) {
-                        this.dom.exportShareSelect.value = state.exportShareSelect;
-                    } else if (this.dom.exportShareSelect) {
-                        this.dom.exportShareSelect.value = 'url'; // 初回などのデフォルトをURL共有に設定
                     }
                     if (state.webPreviewVisible !== undefined && this.dom.webPreviewScreen) {
                         const count = parseInt(this.dom.colorCountSlider.value);
@@ -5829,7 +5829,8 @@
                     hueStep: this.dom.hueStepInput.value,
                     satStep: this.dom.satStepInput.value,
                     litStep: this.dom.litStepInput.value,
-                    visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal'
+                    visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal',
+                    exportShareSelect: this.dom.exportShareSelect ? this.dom.exportShareSelect.value : 'url'
                 };
                 const jsonStr = JSON.stringify(state);
                 const encoded = btoa(encodeURIComponent(jsonStr));
@@ -5884,6 +5885,11 @@
                     if (state.visionMode && this.dom.visionModeSelect) {
                         this.dom.visionModeSelect.value = state.visionMode;
                     }
+                    if (state.exportShareSelect && this.dom.exportShareSelect) {
+                        this.dom.exportShareSelect.value = state.exportShareSelect;
+                    } else if (this.dom.exportShareSelect) {
+                        this.dom.exportShareSelect.value = 'url'; // 初回などのデフォルトをURL共有に設定
+                    }
                     if (state.webPreviewVisible !== undefined && this.dom.webPreviewScreen) {
                         const count = parseInt(this.dom.colorCountSlider.value);
                         if (state.webPreviewVisible) {
@@ -5904,6 +5910,11 @@
                         }
                     }
 
+                    if (state.exportShareSelect && this.dom.exportShareSelect) {
+                        this.dom.exportShareSelect.value = state.exportShareSelect;
+                    } else if (this.dom.exportShareSelect) {
+                        this.dom.exportShareSelect.value = 'url';
+                    }
                     if (state.colors && state.colors.length > 0) {
                         this.currentColors = state.colors.map(sc => {
                             let h = sc.hex.replace(/^#/, '');
