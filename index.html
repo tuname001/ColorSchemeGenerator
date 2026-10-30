@@ -1174,7 +1174,7 @@
                 let baseC = baseState ? baseState.c : ColorMath.random(0.08, 0.20);
 
                 if (mainMode === 'hue_tone') {
-                    if (settings.colorSpace === 'rgb') {
+                    if (settings.colorSpace === 'rgb' || settings.colorSpace === 'hsv') {
                         const startRgb = ColorMath.oklchToRgb(baseL, baseC, baseH);
                         let hsv = ColorMath.rgbToHsv(startRgb[0], startRgb[1], startRgb[2]);
                         if (startRgb[0] === 255 && startRgb[1] === 0 && startRgb[2] === 0) {
@@ -1186,19 +1186,12 @@
                             let h = (hsv.h + settings.hueStep * i) % 360;
                             if (h < 0) h += 360;
                             let s = Math.max(0, Math.min(1, hsv.s + settings.satStep * i));
-                            let v = Math.max(0, Math.min(1, hsv.v + settings.litStep * i));
-                            const rgb = ColorMath.hsvToRgb(h, s, v);
-                            const oklch = ColorMath.rgbToOklch(rgb[0], rgb[1], rgb[2]);
-                            okList.push(oklch);
-                        }
-                    } else if (settings.colorSpace === 'hsv') {
-                        const startRgb = ColorMath.oklchToRgb(baseL, baseC, baseH);
-                        let hsv = ColorMath.rgbToHsv(startRgb[0], startRgb[1], startRgb[2]);
-                        for (let i = 0; i < count; i++) {
-                            let h = (hsv.h + settings.hueStep * i) % 360;
-                            if (h < 0) h += 360;
-                            let s = Math.max(0, Math.min(1, hsv.s + settings.satStep * i));
-                            let v = Math.max(0, Math.min(1, hsv.v + settings.litStep * i));
+                            let litStepFrac = settings.litStep;
+                            let v = litStepFrac >= 0 ? hsv.v + (1.0 - hsv.v) * (litStepFrac * i) : hsv.v * (1.0 + litStepFrac * i);
+                            v = Math.max(0, Math.min(1, v));
+                            if (litStepFrac > 0) {
+                                s = Math.max(0, s * (1.0 - litStepFrac * i));
+                            }
                             const rgb = ColorMath.hsvToRgb(h, s, v);
                             const oklch = ColorMath.rgbToOklch(rgb[0], rgb[1], rgb[2]);
                             okList.push(oklch);
@@ -2605,7 +2598,7 @@
                     }
                 };
 
-                setupResetBtn('reset-hue-step-btn', this.dom.hueStepSlider, this.dom.hueStepInput, 60, false, false);
+                setupResetBtn('reset-hue-step-btn', this.dom.hueStepSlider, this.dom.hueStepInput, 0, false, false);
                 setupResetBtn('reset-sat-step-btn', this.dom.satStepSlider, this.dom.satStepInput, 0, true, false);
                 setupResetBtn('reset-lit-step-btn', this.dom.litStepSlider, this.dom.litStepInput, 0, true, false);
                 setupResetBtn('reset-global-hue-btn', this.dom.globalHueSlider, this.dom.globalHueInput, 0, false, true);
@@ -4547,6 +4540,18 @@
                         this.dom.globalLitSlider.value = state.globalLit;
                         this.dom.globalLitInput.value = state.globalLit;
                     }
+                    if (state.hueStep !== undefined) {
+                        this.dom.hueStepSlider.value = state.hueStep;
+                        this.dom.hueStepInput.value = state.hueStep;
+                    }
+                    if (state.satStep !== undefined) {
+                        this.dom.satStepSlider.value = state.satStep;
+                        this.dom.satStepInput.value = state.satStep;
+                    }
+                    if (state.litStep !== undefined) {
+                        this.dom.litStepSlider.value = state.litStep;
+                        this.dom.litStepInput.value = state.litStep;
+                    }
                     if (state.currentColors && state.currentColors.length > 0) {
                         this.currentColors = state.currentColors;
                         this.renderPanes();
@@ -4566,18 +4571,6 @@
                         this.pushHistory(this.currentColors);
                         this.updateTexts();
                         return true;
-                    }
-                    if (state.hueStep !== undefined) {
-                        this.dom.hueStepSlider.value = state.hueStep;
-                        this.dom.hueStepInput.value = state.hueStep;
-                    }
-                    if (state.satStep !== undefined) {
-                        this.dom.satStepSlider.value = state.satStep;
-                        this.dom.satStepInput.value = state.satStep;
-                    }
-                    if (state.litStep !== undefined) {
-                        this.dom.litStepSlider.value = state.litStep;
-                        this.dom.litStepInput.value = state.litStep;
                     }
                     if (state.visionMode && this.dom.visionModeSelect) {
                         this.dom.visionModeSelect.value = state.visionMode;
@@ -5833,6 +5826,9 @@
                     globalHue: this.dom.globalHueInput.value,
                     globalSat: this.dom.globalSatInput.value,
                     globalLit: this.dom.globalLitInput.value,
+                    hueStep: this.dom.hueStepInput.value,
+                    satStep: this.dom.satStepInput.value,
+                    litStep: this.dom.litStepInput.value,
                     visionMode: this.dom.visionModeSelect ? this.dom.visionModeSelect.value : 'normal'
                 };
                 const jsonStr = JSON.stringify(state);
@@ -5872,6 +5868,18 @@
                     if (state.globalLit !== undefined) {
                         this.dom.globalLitSlider.value = state.globalLit;
                         this.dom.globalLitInput.value = state.globalLit;
+                    }
+                    if (state.hueStep !== undefined) {
+                        this.dom.hueStepSlider.value = state.hueStep;
+                        this.dom.hueStepInput.value = state.hueStep;
+                    }
+                    if (state.satStep !== undefined) {
+                        this.dom.satStepSlider.value = state.satStep;
+                        this.dom.satStepInput.value = state.satStep;
+                    }
+                    if (state.litStep !== undefined) {
+                        this.dom.litStepSlider.value = state.litStep;
+                        this.dom.litStepInput.value = state.litStep;
                     }
                     if (state.visionMode && this.dom.visionModeSelect) {
                         this.dom.visionModeSelect.value = state.visionMode;
